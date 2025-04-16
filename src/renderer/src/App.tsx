@@ -1,7 +1,8 @@
 import { ToastProvider } from './providers/toast-provider'
 import { QueryProvider } from './providers/query-provider'
 import { useToast } from './providers/toast-context'
-
+import { WelcomeScreen } from './components/welcome-screen'
+import { useCallback, useState } from 'react'
 function ToastExample(): React.JSX.Element {
   const { showToast } = useToast()
 
@@ -19,10 +20,18 @@ function ToastExample(): React.JSX.Element {
 }
 
 function App(): React.JSX.Element {
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  const handleOpenSettings = useCallback(() => {
+    setIsSettingsOpen(true)
+  }, [])
+
   return (
     <QueryProvider>
       <ToastProvider>
-        <ToastExample />
+        <div className="relative">
+          <WelcomeScreen onOpenSettings={handleOpenSettings} />
+        </div>
       </ToastProvider>
     </QueryProvider>
   )
