@@ -3,6 +3,8 @@ import { QueryProvider } from './providers/query-provider'
 import { useToast } from './providers/toast-context'
 import { WelcomeScreen } from './components/welcome-screen'
 import { useCallback, useState } from 'react'
+import { SettingsDialog } from './components/settings-dialog'
+
 function ToastExample(): React.JSX.Element {
   const { showToast } = useToast()
 
@@ -23,7 +25,13 @@ function App(): React.JSX.Element {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   const handleOpenSettings = useCallback(() => {
+    console.log('open settings')
     setIsSettingsOpen(true)
+    console.log('isSettingsOpen', isSettingsOpen)
+  }, [])
+
+  const handleCloseSettings = useCallback((open: boolean) => {
+    setIsSettingsOpen(open)
   }, [])
 
   return (
@@ -32,6 +40,7 @@ function App(): React.JSX.Element {
         <div className="relative">
           <WelcomeScreen onOpenSettings={handleOpenSettings} />
         </div>
+        <SettingsDialog open={isSettingsOpen} onOpenChange={handleCloseSettings} />
       </ToastProvider>
     </QueryProvider>
   )
