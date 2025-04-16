@@ -9,6 +9,7 @@ import {
 } from './ui/dialog'
 import { Input } from './ui/input'
 import { Button } from './ui/button'
+import { useToast } from '@renderer/providers/toast-context'
 type APIProvider = 'openai' | 'gemini'
 
 type AIModel = {
@@ -130,6 +131,8 @@ export function SettingsDialog({ open: openProp, onOpenChange }: SettingsDialogP
   const [debuggingModel, setDebuggingModel] = useState('gpt-4o')
   const [isLoading, setIsLoading] = useState(false)
 
+  const { showToast } = useToast()
+
   const handleOpenChange = (newOpen: boolean) => {
     setOpen(newOpen)
     if (onOpenChange && newOpen !== openProp) {
@@ -164,9 +167,63 @@ export function SettingsDialog({ open: openProp, onOpenChange }: SettingsDialogP
 
   const handleSave = async () => {
     setIsLoading(true)
+    try {
+      const result = await window.electronAPI.updateConfig({
+        apiKey,
+        apiProvider,
+        extractionModel,
+        solutionModel,
+        debuggingModel
+      })
+
+      if (result) {
+        showToast('Success', 'Settings saved successfully', 'success')
+        handleOpenChange(false)
+
+        setTimeout(() => {
+          window.location.reload()
+        }, 1500)
+      }
+    } catch (error) {
+      console.error('Failed to save settings:', error)
+      showToast('Error', 'Failed to save settings', 'error')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const openExternalLink = (url: string) => {}
+
+  useEffect(() => {
+    if (open) {
+      setIsLoading(true)
+      interface Config {
+        apiKey?: string
+        apiProvider?: 'openai' | 'gemini'
+        extractionModel?: string
+        solutionModel?: string
+        debuggingModel?: string
+      }
+
+      window.electronAPI
+        .getConfig()
+        .then((config: Config) => {
+          setApiKey(config.apiKey || '')
+          setApiProvider(config.apiProvider || 'openai')
+          setExtractionModel(config.extractionModel || 'gpt-4o')
+          setSolutionModel(config.solutionModel || 'gpt-4o')
+          setDebuggingModel(config.debuggingModel || 'gpt-4o')
+        })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .catch((error: any) => {
+          console.error('Failed to fetch config:', error)
+          showToast('Error', 'Failed to load settings', 'error')
+        })
+        .finally(() => {
+          setIsLoading(false)
+        })
+    }
+  }, [open, showToast])
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
