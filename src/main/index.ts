@@ -6,7 +6,7 @@ import fs from 'fs'
 import { initializeIpcHandler } from './lib/ipc-handler'
 import { KeyboardShortcutHelper } from './lib/keyboard-shortcut'
 import { ScreenshotManager } from './lib/screenshot-manager'
-const state = {
+export const state = {
   mainWindow: null as BrowserWindow | null,
   isWindowVisible: false,
   windowPosition: null as { x: number; y: number } | null,
@@ -22,7 +22,20 @@ const state = {
 
   view: 'queue' as 'queue' | 'solutions' | 'debug',
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  problemInfo: null as any
+  problemInfo: null as any,
+  hasDebugged: false,
+
+  PROCESSING_EVENTS: {
+    NO_SCREENSHOTS: 'processing-no-screenshots',
+    API_KEY_INVALID: 'api-key-invalid',
+    INITIAL_START: 'initial-start',
+    PROBLEM_EXTRACTED: 'problem-extracted',
+    SOLUTION_SUCCESS: 'solution-success',
+    INITIAL_SOLUTION_ERROR: 'solution-error',
+    DEBUG_START: 'debug-start',
+    DEBUG_SUCCESS: 'debug-success',
+    DEBUG_ERROR: 'debug-error'
+  }
 }
 
 async function createWindow(): Promise<void> {

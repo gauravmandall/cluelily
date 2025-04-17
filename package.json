@@ -23,6 +23,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.1",
     "@electron-toolkit/utils": "^4.0.0",
+    "@google/generative-ai": "^0.24.0",
     "@radix-ui/react-dialog": "^1.1.7",
     "@radix-ui/react-toast": "^1.2.7",
     "@tailwindcss/postcss": "^4.1.4",
