@@ -25,6 +25,11 @@ export interface ElectronAPI {
   onScreenshotTaken: (callback: (data: { path: string; preview: string }) => void) => () => void
   toggleMainWindow: () => Promise<{ success: boolean; error?: string }>
   getPlatform: () => string
+  triggerScreenshot: () => Promise<{ success: boolean; error?: string }>
+  deleteLastScreenshot: () => Promise<{ success: boolean; error?: string }>
+  openSettingsPortal: () => Promise<{ success: boolean; error?: string }>
+  onDeleteLastScreenshot: (callback: () => void) => () => void
+  onShowSettings: (callback: () => void) => () => void
 }
 
 declare global {

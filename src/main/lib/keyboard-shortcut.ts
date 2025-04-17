@@ -59,5 +59,12 @@ export class KeyboardShortcutHelper {
         }
       }
     })
+    globalShortcut.register('CommandOrControl+L', async () => {
+      console.log('deleteLastScreenshot')
+      const mainWindow = this.deps.getMainWindow()
+      if (mainWindow) {
+        mainWindow.webContents.send('screenshot-deleted')
+      }
+    })
   }
 }

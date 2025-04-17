@@ -30,7 +30,20 @@ const electronAPI = {
     ipcRenderer.on('screenshot-taken', subscription)
     return () => ipcRenderer.removeListener('screenshot-taken', subscription)
   },
-  getPlatform: () => process.platform
+  getPlatform: () => process.platform,
+  triggerScreenshot: () => ipcRenderer.invoke('trigger-screenshot'),
+  onDeleteLastScreenshot: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on('screenshot-deleted', subscription)
+    return () => ipcRenderer.removeListener('screenshot-deleted', subscription)
+  },
+  deleteLastScreenshot: () => ipcRenderer.invoke('delete-last-screenshot'),
+  openSettingsPortal: () => ipcRenderer.invoke('open-settings-portal'),
+  onShowSettings: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on('show-settings-dialog', subscription)
+    return () => ipcRenderer.removeListener('show-settings-dialog', subscription)
+  }
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

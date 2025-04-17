@@ -62,6 +62,16 @@ function App(): React.JSX.Element {
     window.__LANGUAGE__ = language
   }, [])
 
+  useEffect(() => {
+    const unsubscribeSettings = window.electronAPI.onShowSettings(() => {
+      setIsSettingsOpen(true)
+    })
+
+    return () => {
+      unsubscribeSettings()
+    }
+  }, [])
+
   return (
     <QueryProvider>
       <ToastProvider>

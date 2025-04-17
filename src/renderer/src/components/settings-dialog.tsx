@@ -232,7 +232,7 @@ export function SettingsDialog({ open: openProp, onOpenChange }: SettingsDialogP
         style={{
           position: 'fixed',
           top: '90%',
-          left: '50%',
+          left: '60%',
           transform: 'translate(-50%, -50%)',
           width: 'min(450px, 90vw)',
           height: 'auto',

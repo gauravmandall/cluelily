@@ -1,6 +1,7 @@
 import { COMMAND_KEY } from '@renderer/lib/utils'
 import { useEffect, useRef, useState } from 'react'
 import { LanguageSelector } from '../language-selector'
+import { useToast } from '@renderer/providers/toast-context'
 
 interface QueueCommandsProps {
   screenshotCount?: number
@@ -17,6 +18,7 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
+  const { showToast } = useToast()
 
   const handleMouseEnter = () => {
     setIsTooltipVisible(true)
@@ -41,8 +43,17 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
         <div className="text-xs text-white/90 backdrop-blur-md bg-black/10 rounded-lg py-2 px-4 flex items-center justify-center gap-4">
           <div
             className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
-            onClick={() => {
-              //TODO: Trigger screenshot
+            onClick={async () => {
+              try {
+                const result = await window.electronAPI.triggerScreenshot()
+                if (!result.success) {
+                  console.log('Failed to trigger screenshot:', result.error)
+                  showToast('Error', 'Failed to trigger screenshot', 'error')
+                }
+              } catch (error) {
+                console.error('Error triggering screenshot:', error)
+                showToast('Error', 'Failed to trigger screenshot', 'error')
+              }
             }}
           >
             <span className="text-[11px] leading-none truncate">
@@ -127,8 +138,17 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
                     <div className="space-y-3">
                       <div
                         className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
-                        onClick={() => {
-                          //TODO: Toggle window
+                        onClick={async () => {
+                          try {
+                            const result = await window.electronAPI.toggleMainWindow()
+                            if (!result.success) {
+                              console.log('Failed to toggle window:', result.error)
+                              showToast('Error', 'Failed to toggle window', 'error')
+                            }
+                          } catch (error) {
+                            console.error('Error toggling window:', error)
+                            showToast('Error', 'Failed to toggle window', 'error')
+                          }
                         }}
                       >
                         <div className="flex items-center justify-between">
@@ -148,8 +168,17 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
                       </div>
                       <div
                         className="cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
-                        onClick={() => {
-                          //TODO: Trigger screenshot
+                        onClick={async () => {
+                          try {
+                            const result = await window.electronAPI.triggerScreenshot()
+                            if (!result.success) {
+                              console.log('Failed to trigger screenshot:', result.error)
+                              showToast('Error', 'Failed to trigger screenshot', 'error')
+                            }
+                          } catch (error) {
+                            console.error('Error triggering screenshot:', error)
+                            showToast('Error', 'Failed to trigger screenshot', 'error')
+                          }
                         }}
                       >
                         <div className="flex items-center justify-between">
@@ -197,9 +226,18 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
                         className={`cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors ${
                           screenshotCount! > 0 ? '' : 'opacity-50 cursor-not-allowed'
                         }`}
-                        onClick={() => {
+                        onClick={async () => {
                           if (screenshotCount === 0) return
-                          //TODO: Process screenshot
+                          try {
+                            const result = await window.electronAPI.deleteLastScreenshot()
+                            if (!result.success) {
+                              console.log('Failed to delete last screenshot:', result.error)
+                              showToast('Error', 'Failed to delete last screenshot', 'error')
+                            }
+                          } catch (error) {
+                            console.error('Error deleting last screenshot:', error)
+                            showToast('Error', 'Failed to delete last screenshot', 'error')
+                          }
                         }}
                       >
                         <div className="flex items-center justify-between">
@@ -232,9 +270,7 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
                           <span>AI API Settings</span>
                           <button
                             className="text-[11px] bg-white/10 hover:bg-white/20 rounded px-2 py-1"
-                            onClick={() => {
-                              //TODO: open settings dialog
-                            }}
+                            onClick={() => window.electronAPI.openSettingsPortal()}
                           >
                             Settings
                           </button>

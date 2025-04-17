@@ -77,4 +77,54 @@ export function initializeIpcHandler(deps: IIPCHandler): void {
   ipcMain.handle('delete-screenshot', async (event, path: string) => {
     return deps.deleteScreenshot(path)
   })
+  ipcMain.handle('trigger-screenshot', async () => {
+    const mainWindow = deps.getMainWindow()
+    if (mainWindow) {
+      try {
+        const screenshotPath = await deps.takeScreenshot()
+        const preview = await deps.getImagePreview(screenshotPath)
+        mainWindow.webContents.send('screenshot-taken', { path: screenshotPath, preview })
+        return { success: true }
+      } catch (error) {
+        console.error('Error triggering screenshot:', error)
+        return { success: false, error: 'Failed to take screenshot' }
+      }
+    }
+    return { success: false, error: 'Main window not found' }
+  })
+  ipcMain.handle('toggle-main-window', async () => {
+    return deps.toggleMainWindow()
+  })
+  ipcMain.handle('delete-last-screenshot', async () => {
+    try {
+      const queue =
+        deps.getView() === 'queue' ? deps.getScreenshotQueue() : deps.getExtraScreenshotQueue()
+      console.log('queue', queue)
+
+      if (queue.length === 0) {
+        return { success: false, error: 'No screenshots to delete' }
+      }
+
+      const lastScreenshot = queue[queue.length - 1]
+      const result = await deps.deleteScreenshot(lastScreenshot)
+
+      const mainWindow = deps.getMainWindow()
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('screenshot-deleted')
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error deleting last screenshot:', error)
+      return { success: false, error: 'Failed to delete screenshot' }
+    }
+  })
+  ipcMain.handle('open-settings-portal', async () => {
+    const mainWindow = deps.getMainWindow()
+    if (mainWindow) {
+      mainWindow.webContents.send('show-settings-dialog')
+      return { success: true }
+    }
+    return { success: false, error: 'Main window not found' }
+  })
 }
