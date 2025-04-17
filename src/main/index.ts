@@ -302,8 +302,47 @@ function toggleMainWindow(): void {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getProblemInfo(): any {
+  return state.problemInfo
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function setProblemInfo(problemInfo: any): void {
+  state.problemInfo = problemInfo
+}
+
+function getHasDebugged(): boolean {
+  return state.hasDebugged
+}
+
+function setHasDebugged(hasDebugged: boolean): void {
+  state.hasDebugged = hasDebugged
+}
+
+function getScreenshotManager(): ScreenshotManager | null {
+  return state.screenshotManager
+}
+
 function initializeHelpers() {
   state.screenshotManager = new ScreenshotManager(state.view)
+  state.processingManager = new ProcessingManager({
+    getView,
+    setView,
+    getProblemInfo,
+    setProblemInfo,
+    getScreenshotQueue,
+    getExtraScreenshotQueue,
+    clearQueues,
+    takeScreenshot,
+    getImagePreview,
+    deleteScreenshot,
+    setHasDebugged,
+    getHasDebugged,
+    getMainWindow,
+    getScreenshotManager,
+    PROCESSING_EVENTS: state.PROCESSING_EVENTS
+  })
   state.keyboardShortcutHelper = new KeyboardShortcutHelper({
     moveWindowLeft: () =>
       moveWindowHorizontal((x) => Math.max(-(state.windowSize?.width || 0) / 2, x - state.step)),

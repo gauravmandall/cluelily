@@ -8,7 +8,7 @@ import fs from 'fs'
 
 export interface IProcessingManager {
   getMainWindow: () => BrowserWindow | null
-  getScreenshotManager: () => ScreenshotManager
+  getScreenshotManager: () => ScreenshotManager | null
   getView: () => 'queue' | 'solutions' | 'debug'
   setView: (view: 'queue' | 'solutions' | 'debug') => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,7 +28,7 @@ export interface IProcessingManager {
 
 export class ProcessingManager {
   private deps: IProcessingManager
-  private screenshotManager: ScreenshotManager
+  private screenshotManager: ScreenshotManager | null = null
   private openaiClient: OpenAI | null = null
   private geminiClient: GoogleGenerativeAI | null = null
 
@@ -153,7 +153,7 @@ export class ProcessingManager {
 
     if (view === 'queue') {
       mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.INITIAL_START)
-      const screenshotQueue = this.screenshotManager.getScreenshotQueue()
+      const screenshotQueue = this.screenshotManager?.getScreenshotQueue()
       console.log('screenshotQueue', screenshotQueue)
 
       if (!screenshotQueue || screenshotQueue.length === 0) {
@@ -178,7 +178,7 @@ export class ProcessingManager {
             try {
               return {
                 path,
-                preview: await this.screenshotManager.getImagePreview(path),
+                preview: await this.screenshotManager?.getImagePreview(path),
                 data: fs.readFileSync(path).toString('base64')
               }
             } catch (error) {
@@ -384,7 +384,7 @@ export class ProcessingManager {
 
         const solutionsResponse = await this.generateSolutionsHelper(signal)
         if (solutionsResponse.success) {
-          this.screenshotManager.clearExtraScreenshotQueue()
+          this.screenshotManager?.clearExtraScreenshotQueue()
 
           mainWindow.webContents.send('processing-status', {
             progress: 100,
