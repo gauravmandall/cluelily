@@ -2,8 +2,9 @@ import { ToastProvider } from './providers/toast-provider'
 import { QueryProvider } from './providers/query-provider'
 import { useToast } from './providers/toast-context'
 import { WelcomeScreen } from './components/welcome-screen'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { SettingsDialog } from './components/settings-dialog'
+import MainApp from './components/main-app'
 
 function ToastExample(): React.JSX.Element {
   const { showToast } = useToast()
@@ -23,6 +24,7 @@ function ToastExample(): React.JSX.Element {
 
 function App(): React.JSX.Element {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   const handleOpenSettings = useCallback(() => {
     console.log('open settings')
@@ -34,11 +36,37 @@ function App(): React.JSX.Element {
     setIsSettingsOpen(open)
   }, [])
 
+  const markInitialized = useCallback(() => {
+    setIsInitialized(true)
+  }, [])
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        const config = await window.electronAPI.getConfig()
+
+        markInitialized()
+      } catch (error) {
+        console.error('Error initializing app:', error)
+        markInitialized()
+      }
+    }
+    initializeApp()
+
+    return () => {
+      setIsInitialized(false)
+    }
+  }, [markInitialized])
+
   return (
     <QueryProvider>
       <ToastProvider>
         <div className="relative">
-          <WelcomeScreen onOpenSettings={handleOpenSettings} />
+          {isInitialized ? (
+            <MainApp currentLanguage={'python'} setLanguage={() => {}} />
+          ) : (
+            <WelcomeScreen onOpenSettings={handleOpenSettings} />
+          )}
         </div>
         <SettingsDialog open={isSettingsOpen} onOpenChange={handleCloseSettings} />
       </ToastProvider>

@@ -5,7 +5,7 @@ import icon from '../../resources/icon.png?asset'
 import fs from 'fs'
 import { initializeIpcHandler } from './lib/ipc-handler'
 import { KeyboardShortcutHelper } from './lib/keyboard-shortcut'
-
+import { ScreenshotManager } from './lib/screenshot-manager'
 const state = {
   mainWindow: null as BrowserWindow | null,
   isWindowVisible: false,
@@ -17,7 +17,12 @@ const state = {
   currentX: 0,
   currentY: 0,
 
-  keyboardShortcutHelper: null as KeyboardShortcutHelper | null
+  keyboardShortcutHelper: null as KeyboardShortcutHelper | null,
+  screenshotManager: null as ScreenshotManager | null,
+
+  view: 'queue' as 'queue' | 'solutions' | 'debug',
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  problemInfo: null as any
 }
 
 async function createWindow(): Promise<void> {
@@ -133,6 +138,61 @@ async function createWindow(): Promise<void> {
   state.mainWindow.showInactive()
 }
 
+function getMainWindow(): BrowserWindow | null {
+  return state.mainWindow
+}
+
+async function takeScreenshot(): Promise<string> {
+  if (!state.mainWindow) throw new Error('Main window not found')
+
+  return (
+    state.screenshotManager?.takeScreenshot(
+      () => hideMainWindow(),
+      () => showMainWindow()
+    ) || ''
+  )
+}
+
+async function getImagePreview(filePath: string): Promise<string> {
+  return state.screenshotManager?.getImagePreview(filePath) || ''
+}
+
+function setView(view: 'queue' | 'solutions' | 'debug'): void {
+  state.view = view
+  state.screenshotManager?.setView(view)
+}
+
+function getView(): 'queue' | 'solutions' | 'debug' {
+  return state.view
+}
+
+function clearQueues(): void {
+  state.screenshotManager?.clearQueues()
+  state.problemInfo = null
+  setView('queue')
+}
+
+function getScreenshotQueue(): string[] {
+  return state.screenshotManager?.getScreenshotQueue() || []
+}
+
+function getExtraScreenshotQueue(): string[] {
+  return state.screenshotManager?.getExtraScreenshotQueue() || []
+}
+
+async function deleteScreenshot(path: string): Promise<{ success: boolean; error?: string }> {
+  return (
+    state.screenshotManager?.deleteScreenshot(path) || {
+      success: false,
+      error: 'Failed to delete screenshot'
+    }
+  )
+}
+
+function clearExtraScreenshotQueue(): void {
+  state.screenshotManager?.clearExtraScreenshotQueue()
+}
+
 function handleWindowMove(): void {
   if (!state.mainWindow) return
 
@@ -185,7 +245,50 @@ function moveWindowVertical(updateFn: (y: number) => number): void {
   }
 }
 
+function hideMainWindow(): void {
+  if (!state.mainWindow?.isDestroyed()) {
+    const bounds = state.mainWindow?.getBounds()
+    if (!bounds) return
+    state.windowPosition = { x: bounds.x, y: bounds.y }
+    state.windowSize = { width: bounds.width, height: bounds.height }
+    state.mainWindow?.setIgnoreMouseEvents(true, { forward: true })
+    state.mainWindow?.setOpacity(0)
+    state.isWindowVisible = false
+    console.log('Hiding main window')
+  }
+}
+
+function showMainWindow(): void {
+  if (!state.mainWindow?.isDestroyed()) {
+    if (state.windowPosition && state.windowSize) {
+      state?.mainWindow?.setBounds({
+        ...state.windowPosition,
+        ...state.windowSize
+      })
+    }
+    state.mainWindow?.setIgnoreMouseEvents(false)
+    state.mainWindow?.setAlwaysOnTop(true, 'screen-saver', 1)
+    state.mainWindow?.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+    state.mainWindow?.setContentProtection(true)
+    state.mainWindow?.setOpacity(0)
+    state.mainWindow?.showInactive()
+    state.mainWindow?.setOpacity(1)
+    state.isWindowVisible = true
+    console.log('Showing main window')
+  }
+}
+
+function toggleMainWindow(): void {
+  console.log('Toggling main window')
+  if (state.isWindowVisible) {
+    hideMainWindow()
+  } else {
+    showMainWindow()
+  }
+}
+
 function initializeHelpers() {
+  state.screenshotManager = new ScreenshotManager(state.view)
   state.keyboardShortcutHelper = new KeyboardShortcutHelper({
     moveWindowLeft: () =>
       moveWindowHorizontal((x) => Math.max(-(state.windowSize?.width || 0) / 2, x - state.step)),
@@ -194,25 +297,58 @@ function initializeHelpers() {
         Math.min(state.screenWidth - (state.windowSize?.width || 0) / 2, x + state.step)
       ),
     moveWindowUp: () => moveWindowVertical((y) => y - state.step),
-    moveWindowDown: () => moveWindowVertical((y) => y + state.step)
+    moveWindowDown: () => moveWindowVertical((y) => y + state.step),
+    toggleMainWindow: toggleMainWindow,
+    isVisible: () => state.isWindowVisible,
+    getMainWindow: getMainWindow,
+    takeScreenshot: takeScreenshot,
+    getImagePreview: getImagePreview,
+    clearQueues: clearQueues,
+    setView: setView
   })
 }
 
 async function initializeApp() {
   try {
     const appDataPath = path.join(app.getPath('appData'), 'cluelily')
+    const sessionPath = path.join(appDataPath, 'session')
+    const tempPath = path.join(appDataPath, 'temp')
+    const cachePath = path.join(appDataPath, 'cache')
     console.log('App data path:', appDataPath)
 
-    for (const dir of [appDataPath]) {
+    for (const dir of [appDataPath, sessionPath, tempPath, cachePath]) {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true })
       }
     }
 
     app.setPath('userData', appDataPath)
+    app.setPath('sessionData', sessionPath)
+    app.setPath('temp', tempPath)
+    app.setPath('cache', cachePath)
 
     initializeHelpers()
-    initializeIpcHandler()
+    initializeIpcHandler({
+      getView,
+      getMainWindow,
+      takeScreenshot,
+      clearQueues,
+      setView,
+      moveWindowLeft: () =>
+        moveWindowHorizontal((x) => Math.max(-(state.windowSize?.width || 0) / 2, x - state.step)),
+      moveWindowRight: () =>
+        moveWindowHorizontal((x) =>
+          Math.min(state.screenWidth - (state.windowSize?.width || 0) / 2, x + state.step)
+        ),
+      moveWindowUp: () => moveWindowVertical((y) => y - state.step),
+      moveWindowDown: () => moveWindowVertical((y) => y + state.step),
+      toggleMainWindow: toggleMainWindow,
+      isVisible: () => state.isWindowVisible,
+      getScreenshotQueue: getScreenshotQueue,
+      getExtraScreenshotQueue: getExtraScreenshotQueue,
+      deleteScreenshot: deleteScreenshot,
+      getImagePreview: getImagePreview
+    })
 
     await createWindow()
 
