@@ -1,5 +1,19 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+export const PROCESSING_EVENTS = {
+  API_KEY_INVALID: 'api-key-invalid',
+  NO_SCREENSHOTS: 'no-screenshots',
+  INITIAL_SOLUTION_ERROR: 'initial-solution-error',
+  SOLUTION_SUCCESS: 'solution-success',
+  PROBLEM_EXTRACTED: 'problem-extracted',
+  INITIAL_START: 'initial-start',
+  RESET: 'reset',
+
+  DEBUG_START: 'debug-start',
+  DEBUG_SUCCESS: 'debug-success',
+  DEBUG_ERROR: 'debug-error'
+}
+
 const electronAPI = {
   getConfig: () => ipcRenderer.invoke('get-config'),
   updateConfig: (config: {
@@ -43,6 +57,26 @@ const electronAPI = {
     const subscription = () => callback()
     ipcRenderer.on('show-settings-dialog', subscription)
     return () => ipcRenderer.removeListener('show-settings-dialog', subscription)
+  },
+  triggerProcessScreenshots: () => ipcRenderer.invoke('trigger-process-screenshots'),
+  onSolutionStart: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on(PROCESSING_EVENTS.INITIAL_START, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.INITIAL_START, subscription)
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onSolutionSuccess: (callback: (data: any) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on(PROCESSING_EVENTS.SOLUTION_SUCCESS, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.SOLUTION_SUCCESS, subscription)
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onProblemExtracted: (callback: (data: any) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on(PROCESSING_EVENTS.PROBLEM_EXTRACTED, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.PROBLEM_EXTRACTED, subscription)
   }
 }
 

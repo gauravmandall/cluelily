@@ -30,6 +30,12 @@ export interface ElectronAPI {
   openSettingsPortal: () => Promise<{ success: boolean; error?: string }>
   onDeleteLastScreenshot: (callback: () => void) => () => void
   onShowSettings: (callback: () => void) => () => void
+  triggerProcessScreenshots: () => Promise<{ success: boolean; error?: string }>
+  onSolutionStart: (callback: () => void) => () => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onSolutionSuccess: (callback: (data: any) => void) => () => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onProblemExtracted: (callback: (data: any) => void) => () => void
 }
 
 declare global {

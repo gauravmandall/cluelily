@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain } from 'electron'
 import { configManager } from './config-manager'
-
+import { state } from '../index'
+import { ProcessingManager } from './processing-manager'
 export interface IIPCHandler {
   getMainWindow: () => BrowserWindow | null
   takeScreenshot: () => Promise<string>
@@ -17,6 +18,8 @@ export interface IIPCHandler {
   toggleMainWindow: () => void
   isVisible: () => boolean
   deleteScreenshot: (path: string) => Promise<{ success: boolean; error?: string }>
+  PROCESSING_EVENTS: typeof state.PROCESSING_EVENTS
+  processingManager: ProcessingManager | null
 }
 
 export function initializeIpcHandler(deps: IIPCHandler): void {
@@ -126,5 +129,21 @@ export function initializeIpcHandler(deps: IIPCHandler): void {
       return { success: true }
     }
     return { success: false, error: 'Main window not found' }
+  })
+  ipcMain.handle('trigger-process-screenshots', async () => {
+    try {
+      if (!configManager.hasApiKey()) {
+        const mainWindow = deps.getMainWindow()
+        if (mainWindow) {
+          mainWindow.webContents.send(deps.PROCESSING_EVENTS.API_KEY_INVALID)
+        }
+        return { success: false, error: 'No API key found' }
+      }
+      await deps.processingManager?.processScreenshots()
+      return { success: true }
+    } catch (error) {
+      console.error('Error triggering process screenshots:', error)
+      return { success: false, error: 'Failed to process screenshots' }
+    }
   })
 }

@@ -1,5 +1,5 @@
 import { BrowserWindow, globalShortcut } from 'electron'
-
+import { ProcessingManager } from './processing-manager'
 export interface IKeyboardShortcutHelper {
   moveWindowLeft: () => void
   moveWindowRight: () => void
@@ -12,6 +12,7 @@ export interface IKeyboardShortcutHelper {
   getImagePreview: (filePath: string) => Promise<string>
   clearQueues: () => void
   setView: (view: 'queue' | 'solutions' | 'debug') => void
+  processingManager: ProcessingManager | null
 }
 
 export class KeyboardShortcutHelper {
@@ -65,6 +66,9 @@ export class KeyboardShortcutHelper {
       if (mainWindow) {
         mainWindow.webContents.send('screenshot-deleted')
       }
+    })
+    globalShortcut.register('CommandOrControl+Enter', async () => {
+      await this.deps.processingManager?.processScreenshots()
     })
   }
 }

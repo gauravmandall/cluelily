@@ -358,7 +358,8 @@ function initializeHelpers() {
     takeScreenshot: takeScreenshot,
     getImagePreview: getImagePreview,
     clearQueues: clearQueues,
-    setView: setView
+    setView: setView,
+    processingManager: state.processingManager
   })
 }
 
@@ -401,7 +402,9 @@ async function initializeApp() {
       getScreenshotQueue: getScreenshotQueue,
       getExtraScreenshotQueue: getExtraScreenshotQueue,
       deleteScreenshot: deleteScreenshot,
-      getImagePreview: getImagePreview
+      getImagePreview: getImagePreview,
+      PROCESSING_EVENTS: state.PROCESSING_EVENTS,
+      processingManager: state.processingManager
     })
 
     await createWindow()
