@@ -1,30 +1,23 @@
 import { ToastProvider } from './providers/toast-provider'
 import { QueryProvider } from './providers/query-provider'
-import { useToast } from './providers/toast-context'
 import { WelcomeScreen } from './components/welcome-screen'
 import { useCallback, useEffect, useState } from 'react'
 import { SettingsDialog } from './components/settings-dialog'
 import MainApp from './components/main-app'
 
-function ToastExample(): React.JSX.Element {
-  const { showToast } = useToast()
-
-  return (
-    <>
-      <h1 className="text-3xl font-bold underline text-blue-500">Hello World</h1>
-
-      <div className="flex gap-2">
-        <button onClick={() => showToast('Hello', 'World', 'success')}>Show Toast</button>
-        <button onClick={() => showToast('Hello', 'World', 'error')}>Show Error Toast</button>
-        <button onClick={() => showToast('Hello', 'World', 'neutral')}>Show Neutral Toast</button>
-      </div>
-    </>
-  )
+interface AppConfig {
+  apiKey?: string
+  apiProvider?: 'openai' | 'gemini'
+  extractionModel?: string
+  solutionModel?: string
+  debuggingModel?: string
+  language?: string
 }
 
 function App(): React.JSX.Element {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [currentLanguage, setCurrentLanguage] = useState('python')
 
   const handleOpenSettings = useCallback(() => {
     console.log('open settings')
@@ -38,12 +31,17 @@ function App(): React.JSX.Element {
 
   const markInitialized = useCallback(() => {
     setIsInitialized(true)
+    window.__IS_INITIALIZED__ = true
   }, [])
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        const config = await window.electronAPI.getConfig()
+        const config = (await window.electronAPI.getConfig()) as AppConfig
+
+        if (config?.language) {
+          setCurrentLanguage(config.language)
+        }
 
         markInitialized()
       } catch (error) {
@@ -54,16 +52,22 @@ function App(): React.JSX.Element {
     initializeApp()
 
     return () => {
+      window.__IS_INITIALIZED__ = false
       setIsInitialized(false)
     }
   }, [markInitialized])
+
+  const handleLanguageChange = useCallback((language: string) => {
+    setCurrentLanguage(language)
+    window.__LANGUAGE__ = language
+  }, [])
 
   return (
     <QueryProvider>
       <ToastProvider>
         <div className="relative">
           {isInitialized ? (
-            <MainApp currentLanguage={'python'} setLanguage={() => {}} />
+            <MainApp currentLanguage={currentLanguage} setLanguage={handleLanguageChange} />
           ) : (
             <WelcomeScreen onOpenSettings={handleOpenSettings} />
           )}

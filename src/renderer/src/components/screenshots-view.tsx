@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ScreenshotQueue from './queue/screenshot-queue'
 import { useQuery } from '@tanstack/react-query'
 import { useToast } from '../providers/toast-context'
+import { QueueCommands } from './queue/queue-commands'
 export interface Screenshot {
   path: string
   preview: string
@@ -30,6 +31,8 @@ const ScreenshotsView: React.FC<ScreenshotsViewProps> = ({
 }) => {
   const contentRef = useRef<HTMLDivElement>(null)
   const { showToast } = useToast()
+  const [isTooltipVisible, setIsTooltipVisible] = useState(false)
+  const [tooltipHeight, setTooltipHeight] = useState(0)
 
   const {
     data: screenshots = [],
@@ -67,6 +70,11 @@ const ScreenshotsView: React.FC<ScreenshotsViewProps> = ({
     }
   }
 
+  const handleTooltipVisibilityChange = (visible: boolean, height: number) => {
+    setIsTooltipVisible(visible)
+    setTooltipHeight(height)
+  }
+
   return (
     <div ref={contentRef} className={`bg-transparent w-1/2`}>
       <div className="px-4 py-3">
@@ -75,6 +83,12 @@ const ScreenshotsView: React.FC<ScreenshotsViewProps> = ({
             screenshots={screenshots}
             isLoading={isLoading}
             onDeleteScreenshot={handleDeleteScreenshot}
+          />
+          <QueueCommands
+            screenshotCount={screenshots.length}
+            currentLanguage={currentLanguage}
+            setLanguage={setLanguage}
+            onTooltipVisibilityChange={handleTooltipVisibilityChange}
           />
         </div>
       </div>

@@ -24,10 +24,13 @@ export interface ElectronAPI {
   deleteScreenshot: (path: string) => Promise<{ success: boolean; error?: string }>
   onScreenshotTaken: (callback: (data: { path: string; preview: string }) => void) => () => void
   toggleMainWindow: () => Promise<{ success: boolean; error?: string }>
+  getPlatform: () => string
 }
 
 declare global {
   interface Window {
     electronAPI: ElectronAPI
+    __LANGUAGE__: string
+    __IS_INITIALIZED__: boolean
   }
 }

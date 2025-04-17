@@ -29,7 +29,8 @@ const electronAPI = {
     const subscription = (_: any, data: { path: string; preview: string }) => callback(data)
     ipcRenderer.on('screenshot-taken', subscription)
     return () => ipcRenderer.removeListener('screenshot-taken', subscription)
-  }
+  },
+  getPlatform: () => process.platform
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
