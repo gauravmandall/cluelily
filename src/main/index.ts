@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, shell, BrowserWindow, screen } from 'electron'
 import path, { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -6,6 +6,7 @@ import fs from 'fs'
 import { initializeIpcHandler } from './lib/ipc-handler'
 import { KeyboardShortcutHelper } from './lib/keyboard-shortcut'
 import { ScreenshotManager } from './lib/screenshot-manager'
+import { ProcessingManager } from './lib/processing-manager'
 export const state = {
   mainWindow: null as BrowserWindow | null,
   isWindowVisible: false,
@@ -19,6 +20,7 @@ export const state = {
 
   keyboardShortcutHelper: null as KeyboardShortcutHelper | null,
   screenshotManager: null as ScreenshotManager | null,
+  processingManager: null as ProcessingManager | null,
 
   view: 'queue' as 'queue' | 'solutions' | 'debug',
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
