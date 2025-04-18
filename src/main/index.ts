@@ -110,7 +110,8 @@ async function createWindow(): Promise<void> {
   }
 
   state.mainWindow.webContents.setZoomFactor(1)
-  state.mainWindow.webContents.openDevTools()
+  //TODO: Comment this out when not in development
+  // state.mainWindow.webContents.openDevTools()
   state.mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
