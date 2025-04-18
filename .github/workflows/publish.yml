@@ -35,12 +35,12 @@ jobs:
 
       - name: Build cluelily
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm run build
 
       - name: Publish to GitHub Releases
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ "${{matrix.os}}" == "windows-latest" ]; then
             pnpm run build:win -- --publish always
