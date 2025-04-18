@@ -226,7 +226,84 @@ export class ProcessingManager {
         this.currentProcessingAbortController = null
       }
     } else {
-      //TODO: Implement solutions view processing
+      const extraScreenshotQueue = this.screenshotManager?.getExtraScreenshotQueue()
+      console.log('extraScreenshotQueue', extraScreenshotQueue)
+
+      if (!extraScreenshotQueue || extraScreenshotQueue.length === 0) {
+        console.log('No extra screenshots to process')
+        mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.NO_SCREENSHOTS)
+        return
+      }
+
+      const existingExtraScreenshots = extraScreenshotQueue.filter((path) => fs.existsSync(path))
+      if (existingExtraScreenshots.length === 0) {
+        console.log('No existing extra screenshots to process')
+        mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.NO_SCREENSHOTS)
+        return
+      }
+
+      mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.DEBUG_START)
+
+      this.currentExtraProcessingAbortController = new AbortController()
+      const { signal } = this.currentExtraProcessingAbortController
+
+      try {
+        const allPaths = [
+          ...(this.screenshotManager?.getScreenshotQueue() || []),
+          ...existingExtraScreenshots
+        ]
+
+        const screenshots = await Promise.all(
+          allPaths.map(async (path) => {
+            try {
+              if (!fs.existsSync(path)) {
+                console.warn(`Screenshot not found: ${path}`)
+                return null
+              }
+
+              return {
+                path,
+                preview: await this.screenshotManager?.getImagePreview(path),
+                data: fs.readFileSync(path).toString('base64')
+              }
+            } catch (error) {
+              console.error('Error reading screenshot:', error)
+              return null
+            }
+          })
+        )
+
+        const validScreenshots = screenshots.filter(Boolean)
+
+        if (!validScreenshots || validScreenshots.length === 0) {
+          throw new Error('No valid screenshots to process')
+        }
+
+        console.log(
+          'Combined screenshots for processing',
+          validScreenshots.map((s) => s?.path)
+        )
+
+        const result = await this.processExtraScreenshotsHelper(
+          validScreenshots as Array<{ path: string; data: string }>,
+          signal
+        )
+
+        if (result.success) {
+          this.deps.setHasDebugged(true)
+          mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.DEBUG_SUCCESS, result.data)
+        } else {
+          mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.DEBUG_ERROR, result.error)
+        }
+      } catch (error) {
+        console.error('Error processing extra screenshots:', error)
+        mainWindow.webContents.send(
+          this.deps.PROCESSING_EVENTS.DEBUG_ERROR,
+          error instanceof Error ? error.message : 'Unknown error'
+        )
+      } finally {
+        this.currentExtraProcessingAbortController = null
+      }
     }
   }
 
@@ -627,6 +704,210 @@ export class ProcessingManager {
     const mainWindow = this.deps.getMainWindow()
     if (wasCancelled && mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.NO_SCREENSHOTS)
+    }
+  }
+
+  private async processExtraScreenshotsHelper(
+    screenshots: Array<{ path: string; data: string }>,
+    signal: AbortSignal
+  ) {
+    try {
+      const config = configManager.loadConfig()
+      const language = await this.getLanguage()
+      const problemInfo = this.deps.getProblemInfo()
+      const mainWindow = this.deps.getMainWindow()
+
+      if (!problemInfo) {
+        throw new Error('No problem info found')
+      }
+
+      if (mainWindow) {
+        mainWindow.webContents.send('processing-status', {
+          message: 'Processing debug screenshots...',
+          progress: 30
+        })
+      }
+
+      const imageDataList = screenshots.map((screenshot) => screenshot.data)
+
+      let debugContent
+
+      if (config.apiProvider === 'openai') {
+        if (!this.openaiClient) {
+          return {
+            success: false,
+            error: 'Failed to initialize OpenAI client'
+          }
+        }
+
+        const messages = [
+          {
+            role: 'system' as const,
+            content: `You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+
+            Your response MUST follow this exact structure with these section headers (use ### for headers):
+            ### Issues Identified
+            - List each issue as a bullet point with clear explanation
+
+            ### Specific Improvements and Corrections
+            - List specific code changes needed as bullet points
+
+            ### Optimizations
+            - List any performance optimizations if applicable
+
+            ### Explanation of Changes Needed
+            Here provide a clear explanation of why the changes are needed
+
+            ### Key Points
+            - Summary bullet points of the most important takeaways
+
+            If you include code examples, use proper markdown code blocks with language specification (e.g. \`\`\`java).`
+          },
+          {
+            role: 'user' as const,
+            content: [
+              {
+                type: 'text' as const,
+                text: `I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution. Here are screenshots of my code, the errors or test cases. Please provide a detailed analysis with:
+                1. What issues you found in my code
+                2. Specific improvements and corrections
+                3. Any optimizations that would make the solution better
+                4. A clear explanation of the changes needed`
+              },
+              ...imageDataList.map((data) => ({
+                type: 'image_url' as const,
+                image_url: {
+                  url: `data:image/jpeg;base64,${data}`
+                }
+              }))
+            ]
+          }
+        ]
+
+        if (mainWindow) {
+          mainWindow.webContents.send('processing-status', {
+            message: 'Analyzing debug screenshots...',
+            progress: 60
+          })
+        }
+
+        const debugResponse = await this.openaiClient.chat.completions.create({
+          model: config.debuggingModel || 'gpt-4o',
+          messages,
+          max_tokens: 4000,
+          temperature: 0.2
+        })
+
+        debugContent = debugResponse.choices[0].message.content
+      } else if (config.apiProvider === 'gemini') {
+        if (!this.geminiClient) {
+          return {
+            success: false,
+            error: 'Failed to initialize Gemini client'
+          }
+        }
+
+        const model = this.geminiClient.getGenerativeModel({
+          model: config.debuggingModel || 'gemini-2.0-flash'
+        })
+
+        const debugPrompt = `
+ You are a coding interview assistant helping debug and improve solutions. Analyze these screenshots which include either error messages, incorrect outputs, or test cases, and provide detailed debugging help.
+
+ I'm solving this coding problem: "${problemInfo.problem_statement}" in ${language}. I need help with debugging or improving my solution.
+
+ YOUR RESPONSE MUST FOLLOW THIS EXACT STRUCTURE WITH THESE SECTION HEADERS:
+ ### Issues Identified
+ - List each issue as a bullet point with clear explanation
+
+ ### Specific Improvements and Corrections
+ - List specific code changes needed as bullet points
+
+ ### Optimizations
+ - List any performance optimizations if applicable
+
+ ### Explanation of Changes Needed
+ Here provide a clear explanation of why the changes are needed
+
+ ### Key Points
+ - Summary bullet points of the most important takeaways
+
+ If you include code examples, use proper markdown code blocks with language specification (e.g. \`\`\`java).`
+
+        const solutionResponse = await model.generateContent({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: debugPrompt
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.2
+          }
+        })
+
+        if (mainWindow) {
+          mainWindow.webContents.send('processing-status', {
+            message: 'Analyzing debug screenshots...',
+            progress: 60
+          })
+        }
+
+        debugContent = solutionResponse.response.text()
+      }
+
+      if (mainWindow) {
+        mainWindow.webContents.send('processing-status', {
+          message: 'Debug analysis complete',
+          progress: 100
+        })
+      }
+
+      let extractedCode = '// Debug mode - see analysis below'
+      const codeMatch = debugContent.match(/```(?:[a-zA-Z]+)?([\s\S]*?)```/)
+      if (codeMatch && codeMatch[1]) {
+        extractedCode = codeMatch[1].trim()
+      }
+
+      let formattedDebugContent = debugContent
+
+      if (!debugContent.includes('# ') && !debugContent.includes('## ')) {
+        formattedDebugContent = debugContent
+          .replace(/issues identified|problems found|bugs found/i, '## Issues Identified')
+          .replace(/code improvements|improvements|suggested changes/i, '## Code Improvements')
+          .replace(/optimizations|performance improvements/i, '## Optimizations')
+          .replace(/explanation|detailed analysis/i, '## Explanation')
+      }
+
+      const bulletPoints = formattedDebugContent.match(/(?:^|\n)[ ]*(?:[-*•]|\d+\.)[ ]+([^\n]+)/g)
+      const thoughts = bulletPoints
+        ? bulletPoints
+            .map((point) => point.replace(/^[ ]*(?:[-*•]|\d+\.)[ ]+/, '').trim())
+            .slice(0, 5)
+        : ['Debug analysis based on your screenshots']
+
+      const response = {
+        code: extractedCode,
+        debug_analysis: formattedDebugContent,
+        thoughts: thoughts,
+        time_complexity: 'N/A - Debug mode',
+        space_complexity: 'N/A - Debug mode'
+      }
+
+      return {
+        success: true,
+        data: response
+      }
+    } catch (error) {
+      console.error('Error processing extra screenshots:', error)
+      return {
+        success: false,
+        error: 'Failed to process extra screenshots'
+      }
     }
   }
 }

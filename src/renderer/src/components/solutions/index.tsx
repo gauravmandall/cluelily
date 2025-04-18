@@ -8,7 +8,7 @@ import { ComplexitySection } from './complexity-section'
 import ScreenshotQueue from '../queue/screenshot-queue'
 import { useToast } from '@renderer/providers/toast-context'
 import SolutionCommands from './solution-commands'
-
+import Debug from '../debug'
 export interface SolutionsProps {
   setView: (view: 'queue' | 'solutions' | 'debug') => void
   currentLanguage: string
@@ -148,6 +148,20 @@ const Solutions: React.FC<SolutionsProps> = ({ setView, currentLanguage, setLang
 
         fetchScreenshots()
       }),
+      window.electronAPI.onDebugStart(() => {
+        setDebugProcessing(true)
+      }),
+      window.electronAPI.onDebugSuccess((data) => {
+        queryClient.setQueryData(['new_solution'], data)
+        setDebugProcessing(false)
+      }),
+      window.electronAPI.onDebugError(() => {
+        showToast('Processing Failed', 'There was an error debugging your solution', 'error')
+        setDebugProcessing(false)
+      }),
+      window.electronAPI.onProcessingNoScreenshots(() => {
+        showToast('No Screenshots', 'There are no extra screenshots to debug', 'neutral')
+      }),
       window.electronAPI.onScreenshotTaken(async () => {
         try {
           const existing = await window.electronAPI.getScreenshots()
@@ -205,7 +219,12 @@ const Solutions: React.FC<SolutionsProps> = ({ setView, currentLanguage, setLang
   return (
     <>
       {!isResetting && queryClient.getQueryData(['new_solution']) ? (
-        <></>
+        <Debug
+          isProcessing={debugProcessing}
+          setIsProcessing={setDebugProcessing}
+          currentLanguage={currentLanguage}
+          setLanguage={setLanguage}
+        />
       ) : (
         <div className="relative" ref={contentRef}>
           <div className="space-y-3 px-4 py-3">

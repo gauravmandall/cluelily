@@ -83,7 +83,34 @@ const electronAPI = {
     ipcRenderer.on('reset-view', subscription)
     return () => ipcRenderer.removeListener('reset-view', subscription)
   },
-  triggerReset: () => ipcRenderer.invoke('trigger-reset')
+  triggerReset: () => ipcRenderer.invoke('trigger-reset'),
+  onDebugStart: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on(PROCESSING_EVENTS.DEBUG_START, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_START, subscription)
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onDebugSuccess: (callback: (data: any) => void) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const subscription = (_: any, data: any) => callback(data)
+    ipcRenderer.on(PROCESSING_EVENTS.DEBUG_SUCCESS, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_SUCCESS, subscription)
+  },
+  onDebugError: (callback: (error: string) => void) => {
+    const subscription = (_, error: string) => callback(error)
+    ipcRenderer.on(PROCESSING_EVENTS.DEBUG_ERROR, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.DEBUG_ERROR, subscription)
+  },
+  onProcessingNoScreenshots: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on(PROCESSING_EVENTS.NO_SCREENSHOTS, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.NO_SCREENSHOTS, subscription)
+  },
+  onSolutionError: (callback: (error: string) => void) => {
+    const subscription = (_, error: string) => callback(error)
+    ipcRenderer.on(PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR, subscription)
+  }
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
