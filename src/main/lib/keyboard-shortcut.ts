@@ -97,5 +97,28 @@ export class KeyboardShortcutHelper {
       console.log('increaseOpacity')
       this.adjustOpacity(0.1)
     })
+    globalShortcut.register('CommandOrControl+-', () => {
+      console.log('zoom out')
+      const mainWindow = this.deps.getMainWindow()
+      if (mainWindow) {
+        const currentZoom = mainWindow.webContents.getZoomLevel()
+        mainWindow.webContents.setZoomLevel(currentZoom - 0.5)
+      }
+    })
+    globalShortcut.register('CommandOrControl+=', () => {
+      console.log('zoom in')
+      const mainWindow = this.deps.getMainWindow()
+      if (mainWindow) {
+        const currentZoom = mainWindow.webContents.getZoomLevel()
+        mainWindow.webContents.setZoomLevel(currentZoom + 0.5)
+      }
+    })
+    globalShortcut.register('CommandOrControl+0', () => {
+      console.log('resetZoom')
+      const mainWindow = this.deps.getMainWindow()
+      if (mainWindow) {
+        mainWindow.webContents.setZoomLevel(1)
+      }
+    })
   }
 }
