@@ -151,7 +151,10 @@ const Debug: React.FC<DebugProps> = ({
         if (tooltipVisible) {
           contentHeight += tooltipHeight
         }
-        //TODO: send to main process
+        window.electronAPI.updateContentDimensions({
+          width: contentWidth,
+          height: contentHeight
+        })
       }
     }
 

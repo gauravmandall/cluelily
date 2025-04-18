@@ -16,8 +16,7 @@ export interface SolutionCommandsProps {
 const SolutionCommands: React.FC<SolutionCommandsProps> = ({
   onTooltipVisibilityChange,
   isProcessing,
-  screenshots,
-  extraScreenshots,
+  extraScreenshots = [],
   currentLanguage,
   setLanguage
 }) => {

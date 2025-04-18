@@ -44,6 +44,7 @@ export interface ElectronAPI {
   onDebugError: (callback: (error: string) => void) => () => void
   onProcessingNoScreenshots: (callback: () => void) => () => void
   onSolutionError: (callback: (error: string) => void) => () => void
+  updateContentDimensions: (dimensions: { width: number; height: number }) => void
 }
 
 declare global {

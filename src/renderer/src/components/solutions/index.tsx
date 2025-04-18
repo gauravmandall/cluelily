@@ -75,7 +75,10 @@ const Solutions: React.FC<SolutionsProps> = ({ setView, currentLanguage, setLang
         if (isTooltipVisible) {
           contentHeight += tooltipHeight
         }
-        //TODO: pass to electronAPI
+        window.electronAPI.updateContentDimensions({
+          width: contentWidth,
+          height: contentHeight
+        })
       }
     }
 
@@ -176,6 +179,26 @@ const Solutions: React.FC<SolutionsProps> = ({ setView, currentLanguage, setLang
         } catch (error) {
           console.error('Error fetching screenshots:', error)
         }
+      }),
+      window.electronAPI.onSolutionError((error: string) => {
+        showToast('Error', error, 'error')
+
+        const solution = queryClient.getQueryData(['solution']) as {
+          code: string
+          thoughts: string[]
+          time_complexity: string
+          space_complexity: string
+        } | null
+
+        if (!solution) {
+          setView('queue')
+        }
+
+        setSolutionData(solution?.code || null)
+        setThoughtsData(solution?.thoughts || null)
+        setTimeComplexityData(solution?.time_complexity || null)
+        setSpaceComplexityData(solution?.space_complexity || null)
+        console.log('processing error', error)
       })
     ]
 
@@ -183,7 +206,7 @@ const Solutions: React.FC<SolutionsProps> = ({ setView, currentLanguage, setLang
       cleanupFunctions.forEach((fn) => fn())
       resizeObserver.disconnect()
     }
-  }, [])
+  }, [isTooltipVisible, tooltipHeight])
 
   const handleDeleteExtraScreenshot = async (index: number) => {
     const screenshotToDelete = extraScreenshots[index]

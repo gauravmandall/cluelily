@@ -60,7 +60,7 @@ async function createWindow(): Promise<void> {
     width: 800,
     height: 600,
     minWidth: 750,
-    maxHeight: 550,
+    minHeight: 550,
     x: state.currentX,
     y: state.currentY,
     alwaysOnTop: true,
@@ -363,6 +363,22 @@ function initializeHelpers() {
   })
 }
 
+function setWindowDimensions(width: number, height: number): void {
+  if (!state.mainWindow?.isDestroyed()) {
+    const [currentX, currentY] = state.mainWindow?.getPosition() || [0, 0]
+    const primaryDisplay = screen.getPrimaryDisplay()
+    const workArea = primaryDisplay.workAreaSize
+    const maxWidth = Math.floor(workArea.width * 0.5)
+
+    state.mainWindow?.setBounds({
+      x: Math.min(currentX, workArea.width - maxWidth),
+      y: currentY,
+      width: Math.min(width + 32, maxWidth),
+      height: Math.ceil(height)
+    })
+  }
+}
+
 async function initializeApp() {
   try {
     const appDataPath = path.join(app.getPath('appData'), 'cluelily')
@@ -404,7 +420,8 @@ async function initializeApp() {
       deleteScreenshot: deleteScreenshot,
       getImagePreview: getImagePreview,
       PROCESSING_EVENTS: state.PROCESSING_EVENTS,
-      processingManager: state.processingManager
+      processingManager: state.processingManager,
+      setWindowDimensions: setWindowDimensions
     })
 
     await createWindow()

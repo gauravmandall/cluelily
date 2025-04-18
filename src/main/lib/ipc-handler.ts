@@ -20,6 +20,7 @@ export interface IIPCHandler {
   deleteScreenshot: (path: string) => Promise<{ success: boolean; error?: string }>
   PROCESSING_EVENTS: typeof state.PROCESSING_EVENTS
   processingManager: ProcessingManager | null
+  setWindowDimensions: (width: number, height: number) => void
 }
 
 export function initializeIpcHandler(deps: IIPCHandler): void {
@@ -163,4 +164,16 @@ export function initializeIpcHandler(deps: IIPCHandler): void {
       return { success: false, error: 'Failed to reset' }
     }
   })
+  ipcMain.handle('set-window-dimensions', (event, width: number, height: number) => {
+    return deps.setWindowDimensions(width, height)
+  })
+  ipcMain.handle(
+    'update-content-dimensions',
+    async (event, { width, height }: { width: number; height: number }) => {
+      console.log('update-content-dimensions', width, height)
+      if (width && height) {
+        deps.setWindowDimensions(width, height)
+      }
+    }
+  )
 }

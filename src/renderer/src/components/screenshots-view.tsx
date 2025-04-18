@@ -49,6 +49,27 @@ const ScreenshotsView: React.FC<ScreenshotsViewProps> = ({
   console.log('screenshots', screenshots)
 
   useEffect(() => {
+    const updateDimensions = () => {
+      if (contentRef.current) {
+        let contentHeight = contentRef.current.scrollHeight
+        const contentWidth = contentRef.current.scrollWidth
+        if (isTooltipVisible) {
+          contentHeight += tooltipHeight
+        }
+        window.electronAPI.updateContentDimensions({
+          width: contentWidth,
+          height: contentHeight
+        })
+      }
+    }
+
+    const resizeObserver = new ResizeObserver(updateDimensions)
+    if (contentRef.current) {
+      resizeObserver.observe(contentRef.current)
+    }
+
+    updateDimensions()
+
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
       window.electronAPI.onResetView(() => refetch()),
@@ -58,12 +79,21 @@ const ScreenshotsView: React.FC<ScreenshotsViewProps> = ({
         } else {
           showToast('Error', 'No screenshots to delete', 'error')
         }
+      }),
+      window.electronAPI.onSolutionError((error: string) => {
+        showToast('Error', error, 'error')
+        setView('queue')
+        console.log('error', error)
+      }),
+      window.electronAPI.onProcessingNoScreenshots(() => {
+        showToast('Error', 'No screenshots to process', 'error')
       })
     ]
     return () => {
       cleanupFunctions.forEach((cleanup) => cleanup())
+      resizeObserver.disconnect()
     }
-  }, [screenshots])
+  }, [screenshots, isTooltipVisible, tooltipHeight])
 
   const handleDeleteScreenshot = async (index: number) => {
     const screenshotToDelete = screenshots[index]
