@@ -20,6 +20,7 @@ export interface ElectronAPI {
     valid: boolean
     error?: string
   }>
+  onApiKeyInvalid: (callback: () => void) => () => void
   getScreenshots: () => Promise<{ path: string; preview: string }[]>
   deleteScreenshot: (path: string) => Promise<{ success: boolean; error?: string }>
   onScreenshotTaken: (callback: (data: { path: string; preview: string }) => void) => () => void
@@ -46,6 +47,8 @@ export interface ElectronAPI {
   onSolutionError: (callback: (error: string) => void) => () => void
   updateContentDimensions: (dimensions: { width: number; height: number }) => void
   openLink: (url: string) => Promise<{ success: boolean; error?: string }>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  removeListener: (eventName: string, callback: (...args: any[]) => void) => void
 }
 
 declare global {

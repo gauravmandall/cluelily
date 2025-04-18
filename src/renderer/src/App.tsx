@@ -4,7 +4,7 @@ import { WelcomeScreen } from './components/welcome-screen'
 import { useCallback, useEffect, useState } from 'react'
 import { SettingsDialog } from './components/settings-dialog'
 import MainApp from './components/main-app'
-
+import { useToast } from '@renderer/providers/toast-context'
 interface AppConfig {
   apiKey?: string
   apiProvider?: 'openai' | 'gemini'
@@ -18,6 +18,9 @@ function App(): React.JSX.Element {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [currentLanguage, setCurrentLanguage] = useState('python')
+  const [hasApiKey, setHasApiKey] = useState(false)
+  const [_, setApiKeyDialogOpen] = useState(false)
+  const { showToast } = useToast()
 
   const handleOpenSettings = useCallback(() => {
     console.log('open settings')
@@ -33,6 +36,28 @@ function App(): React.JSX.Element {
     setIsInitialized(true)
     window.__IS_INITIALIZED__ = true
   }, [])
+
+  useEffect(() => {
+    const checkApiKey = async () => {
+      try {
+        const hasKey = await window.electronAPI.checkApiKey()
+        setHasApiKey(hasKey)
+
+        if (!hasKey) {
+          setTimeout(() => {
+            setIsSettingsOpen(true)
+          }, 1000)
+        }
+      } catch (error) {
+        console.error('Error checking API key:', error)
+        showToast('Error checking API key', 'Please check your API key', 'error')
+      }
+    }
+
+    if (isInitialized) {
+      checkApiKey()
+    }
+  }, [isInitialized])
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -51,11 +76,19 @@ function App(): React.JSX.Element {
     }
     initializeApp()
 
+    const onApiKeyInvalid = () => {
+      showToast('API key invalid', 'Please check your API key', 'error')
+      setApiKeyDialogOpen(true)
+    }
+
+    window.electronAPI.onApiKeyInvalid(onApiKeyInvalid)
+
     return () => {
+      window.electronAPI.removeListener('API_KEY_INVALID', onApiKeyInvalid)
       window.__IS_INITIALIZED__ = false
       setIsInitialized(false)
     }
-  }, [markInitialized])
+  }, [markInitialized, showToast])
 
   const handleLanguageChange = useCallback((language: string) => {
     setCurrentLanguage(language)
@@ -77,9 +110,18 @@ function App(): React.JSX.Element {
       <ToastProvider>
         <div className="relative">
           {isInitialized ? (
-            <MainApp currentLanguage={currentLanguage} setLanguage={handleLanguageChange} />
+            hasApiKey ? (
+              <MainApp currentLanguage={currentLanguage} setLanguage={handleLanguageChange} />
+            ) : (
+              <WelcomeScreen onOpenSettings={handleOpenSettings} />
+            )
           ) : (
-            <WelcomeScreen onOpenSettings={handleOpenSettings} />
+            <div className="min-h-screen bg-black flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-6 h-6 border-2 border-white/20 border-t-white/80 rounded-full animate-spin"></div>
+                <p className="text-white/60 text-sm">Initializing...</p>
+              </div>
+            </div>
           )}
         </div>
         <SettingsDialog open={isSettingsOpen} onOpenChange={handleCloseSettings} />

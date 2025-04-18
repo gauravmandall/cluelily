@@ -113,7 +113,16 @@ const electronAPI = {
   },
   updateContentDimensions: (dimensions: { width: number; height: number }) =>
     ipcRenderer.invoke('update-content-dimensions', dimensions),
-  openLink: (url: string) => ipcRenderer.invoke('openLink', url)
+  openLink: (url: string) => ipcRenderer.invoke('openLink', url),
+  onApiKeyInvalid: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on(PROCESSING_EVENTS.API_KEY_INVALID, subscription)
+    return () => ipcRenderer.removeListener(PROCESSING_EVENTS.API_KEY_INVALID, subscription)
+  },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  removeListener: (eventName: string, callback: (...args: any[]) => void) => {
+    ipcRenderer.removeListener(eventName, callback)
+  }
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
