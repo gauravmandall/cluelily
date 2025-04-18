@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain } from 'electron'
+import { BrowserWindow, ipcMain, shell } from 'electron'
 import { configManager } from './config-manager'
 import { state } from '../index'
 import { ProcessingManager } from './processing-manager'
@@ -176,4 +176,14 @@ export function initializeIpcHandler(deps: IIPCHandler): void {
       }
     }
   )
+  ipcMain.handle('openLink', (_, url: string) => {
+    try {
+      console.log('openLink', url)
+      shell.openExternal(url)
+      return { success: true }
+    } catch (error) {
+      console.error('Error opening link:', error)
+      return { success: false, error: 'Failed to open link' }
+    }
+  })
 }

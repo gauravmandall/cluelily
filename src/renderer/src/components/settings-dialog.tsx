@@ -192,7 +192,9 @@ export function SettingsDialog({ open: openProp, onOpenChange }: SettingsDialogP
     }
   }
 
-  const openExternalLink = (url: string) => {}
+  const openExternalLink = (url: string) => {
+    window.electronAPI.openLink(url)
+  }
 
   useEffect(() => {
     if (open) {

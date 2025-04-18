@@ -112,7 +112,8 @@ const electronAPI = {
     return () => ipcRenderer.removeListener(PROCESSING_EVENTS.INITIAL_SOLUTION_ERROR, subscription)
   },
   updateContentDimensions: (dimensions: { width: number; height: number }) =>
-    ipcRenderer.invoke('update-content-dimensions', dimensions)
+    ipcRenderer.invoke('update-content-dimensions', dimensions),
+  openLink: (url: string) => ipcRenderer.invoke('openLink', url)
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)
