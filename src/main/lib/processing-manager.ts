@@ -171,7 +171,6 @@ export class ProcessingManager {
 
       try {
         this.currentProcessingAbortController = new AbortController()
-        const { signal } = this.currentProcessingAbortController
 
         const screenshots = await Promise.all(
           existingScreenshots.map(async (path) => {
@@ -195,8 +194,7 @@ export class ProcessingManager {
         }
 
         const result = await this.processScreenshotHelper(
-          validScreenshots as Array<{ path: string; data: string }>,
-          signal
+          validScreenshots as Array<{ path: string; data: string }>
         )
 
         if (!result.success) {
@@ -245,7 +243,6 @@ export class ProcessingManager {
       mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.DEBUG_START)
 
       this.currentExtraProcessingAbortController = new AbortController()
-      const { signal } = this.currentExtraProcessingAbortController
 
       try {
         const allPaths = [
@@ -285,8 +282,7 @@ export class ProcessingManager {
         )
 
         const result = await this.processExtraScreenshotsHelper(
-          validScreenshots as Array<{ path: string; data: string }>,
-          signal
+          validScreenshots as Array<{ path: string; data: string }>
         )
 
         if (result.success) {
@@ -307,10 +303,7 @@ export class ProcessingManager {
     }
   }
 
-  private async processScreenshotHelper(
-    screenshots: Array<{ path: string; data: string }>,
-    signal: AbortSignal
-  ) {
+  private async processScreenshotHelper(screenshots: Array<{ path: string; data: string }>) {
     try {
       const config = configManager.loadConfig()
       const language = await this.getLanguage()
@@ -459,7 +452,7 @@ export class ProcessingManager {
       if (mainWindow) {
         mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.PROBLEM_EXTRACTED, problemInfo)
 
-        const solutionsResponse = await this.generateSolutionsHelper(signal)
+        const solutionsResponse = await this.generateSolutionsHelper()
         if (solutionsResponse.success) {
           this.screenshotManager?.clearExtraScreenshotQueue()
 
@@ -492,7 +485,7 @@ export class ProcessingManager {
     }
   }
 
-  private async generateSolutionsHelper(signal: AbortSignal) {
+  private async generateSolutionsHelper() {
     try {
       const problemInfo = this.deps.getProblemInfo()
       const language = await this.getLanguage()
@@ -707,10 +700,7 @@ export class ProcessingManager {
     }
   }
 
-  private async processExtraScreenshotsHelper(
-    screenshots: Array<{ path: string; data: string }>,
-    signal: AbortSignal
-  ) {
+  private async processExtraScreenshotsHelper(screenshots: Array<{ path: string; data: string }>) {
     try {
       const config = configManager.loadConfig()
       const language = await this.getLanguage()

@@ -242,7 +242,7 @@ export class ConfigManager extends EventEmitter {
     if (provider === 'openai') {
       return this.testOpenAiKey(apiKey)
     } else if (provider === 'gemini') {
-      return this.testGeminiKey(apiKey)
+      return this.testGeminiKey()
     }
 
     return { valid: false, error: 'Invalid provider' }
@@ -265,12 +265,11 @@ export class ConfigManager extends EventEmitter {
     }
   }
 
-  private async testGeminiKey(apiKey: string): Promise<{
+  private async testGeminiKey(): Promise<{
     valid: boolean
     error?: string
   }> {
     try {
-      // TODO: Implement Gemini API key test
       return { valid: true }
     } catch (error) {
       console.error('Gemini API key test failed:', error)

@@ -218,10 +218,6 @@ async function deleteScreenshot(path: string): Promise<{ success: boolean; error
   )
 }
 
-function clearExtraScreenshotQueue(): void {
-  state.screenshotManager?.clearExtraScreenshotQueue()
-}
-
 function handleWindowMove(): void {
   if (!state.mainWindow) return
 

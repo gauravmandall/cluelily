@@ -78,7 +78,7 @@ export function initializeIpcHandler(deps: IIPCHandler): void {
       throw error
     }
   })
-  ipcMain.handle('delete-screenshot', async (event, path: string) => {
+  ipcMain.handle('delete-screenshot', async (_, path: string) => {
     return deps.deleteScreenshot(path)
   })
   ipcMain.handle('trigger-screenshot', async () => {
@@ -164,12 +164,12 @@ export function initializeIpcHandler(deps: IIPCHandler): void {
       return { success: false, error: 'Failed to reset' }
     }
   })
-  ipcMain.handle('set-window-dimensions', (event, width: number, height: number) => {
+  ipcMain.handle('set-window-dimensions', (_, width: number, height: number) => {
     return deps.setWindowDimensions(width, height)
   })
   ipcMain.handle(
     'update-content-dimensions',
-    async (event, { width, height }: { width: number; height: number }) => {
+    async (_, { width, height }: { width: number; height: number }) => {
       console.log('update-content-dimensions', width, height)
       if (width && height) {
         deps.setWindowDimensions(width, height)
