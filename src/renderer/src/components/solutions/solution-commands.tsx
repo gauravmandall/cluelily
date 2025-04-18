@@ -136,7 +136,16 @@ const SolutionCommands: React.FC<SolutionCommandsProps> = ({
           <div
             className="flex items-center gap-2 cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors"
             onClick={async () => {
-              //TODO: Implement start over
+              try {
+                const result = await window.electronAPI.triggerReset()
+                if (!result.success) {
+                  console.error('Failed to reset', result.error)
+                  showToast('Error', 'Failed to reset', 'error')
+                }
+              } catch (error) {
+                console.error('Failed to reset', error)
+                showToast('Error', 'Failed to reset', 'error')
+              }
             }}
           >
             <span className="text-[11px] leading-none">Start Over</span>

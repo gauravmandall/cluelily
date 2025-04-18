@@ -605,4 +605,28 @@ export class ProcessingManager {
       }
     }
   }
+
+  public cancelOngoingRequest(): void {
+    let wasCancelled = false
+
+    if (this.currentProcessingAbortController) {
+      this.currentProcessingAbortController.abort()
+      this.currentProcessingAbortController = null
+      wasCancelled = true
+    }
+
+    if (this.currentExtraProcessingAbortController) {
+      this.currentExtraProcessingAbortController.abort()
+      this.currentExtraProcessingAbortController = null
+      wasCancelled = true
+    }
+
+    this.deps.setHasDebugged(false)
+    this.deps.setProblemInfo(null)
+
+    const mainWindow = this.deps.getMainWindow()
+    if (wasCancelled && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send(this.deps.PROCESSING_EVENTS.NO_SCREENSHOTS)
+    }
+  }
 }

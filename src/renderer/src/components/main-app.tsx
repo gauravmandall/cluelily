@@ -14,6 +14,26 @@ const MainApp: React.FC<MainAppProps> = ({ currentLanguage, setLanguage }) => {
   const queryClient = useQueryClient()
 
   useEffect(() => {
+    const cleanup = window.electronAPI.onResetView(() => {
+      queryClient.invalidateQueries({
+        queryKey: ['screenshots']
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['problem_statement']
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['solution']
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['new_solution']
+      })
+      setView('queue')
+    })
+
+    return () => cleanup()
+  }, [])
+
+  useEffect(() => {
     const cleanupFunctions = [
       window.electronAPI.onSolutionStart(() => {
         setView('solutions')
@@ -27,6 +47,21 @@ const MainApp: React.FC<MainAppProps> = ({ currentLanguage, setLanguage }) => {
           })
           queryClient.setQueryData(['problem_statement'], data)
         }
+      }),
+      window.electronAPI.onResetView(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['screenshots']
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['problem_statement']
+        })
+        queryClient.invalidateQueries({
+          queryKey: ['solution']
+        })
+        setView('queue')
+      }),
+      window.electronAPI.onResetView(() => {
+        queryClient.setQueryData(['problem_statement'], null)
       })
     ]
 

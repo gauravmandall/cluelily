@@ -90,6 +90,22 @@ const Solutions: React.FC<SolutionsProps> = ({ setView, currentLanguage, setLang
       window.electronAPI.onProblemExtracted((data) => {
         queryClient.setQueryData(['problem_statement'], data)
       }),
+      window.electronAPI.onResetView(() => {
+        setIsResetting(true)
+
+        queryClient.removeQueries({
+          queryKey: ['solution']
+        })
+        queryClient.removeQueries({
+          queryKey: ['new_solution']
+        })
+
+        setExtraScreenshots([])
+
+        setTimeout(() => {
+          setIsResetting(false)
+        }, 0)
+      }),
       window.electronAPI.onSolutionStart(() => {
         setSolutionData(null)
         setThoughtsData(null)

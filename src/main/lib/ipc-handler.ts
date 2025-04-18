@@ -146,4 +146,21 @@ export function initializeIpcHandler(deps: IIPCHandler): void {
       return { success: false, error: 'Failed to process screenshots' }
     }
   })
+  ipcMain.handle('trigger-reset', async () => {
+    try {
+      deps.processingManager?.cancelOngoingRequest()
+
+      deps.clearQueues()
+      deps.setView('queue')
+
+      const mainWindow = deps.getMainWindow()
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('reset-view')
+      }
+      return { success: true }
+    } catch (error) {
+      console.error('Error triggering reset:', error)
+      return { success: false, error: 'Failed to reset' }
+    }
+  })
 }

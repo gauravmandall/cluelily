@@ -51,6 +51,7 @@ const ScreenshotsView: React.FC<ScreenshotsViewProps> = ({
   useEffect(() => {
     const cleanupFunctions = [
       window.electronAPI.onScreenshotTaken(() => refetch()),
+      window.electronAPI.onResetView(() => refetch()),
       window.electronAPI.onDeleteLastScreenshot(async () => {
         if (screenshots.length > 0) {
           await handleDeleteScreenshot(screenshots.length - 1)

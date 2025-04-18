@@ -77,7 +77,13 @@ const electronAPI = {
     const subscription = (_: any, data: any) => callback(data)
     ipcRenderer.on(PROCESSING_EVENTS.PROBLEM_EXTRACTED, subscription)
     return () => ipcRenderer.removeListener(PROCESSING_EVENTS.PROBLEM_EXTRACTED, subscription)
-  }
+  },
+  onResetView: (callback: () => void) => {
+    const subscription = () => callback()
+    ipcRenderer.on('reset-view', subscription)
+    return () => ipcRenderer.removeListener('reset-view', subscription)
+  },
+  triggerReset: () => ipcRenderer.invoke('trigger-reset')
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

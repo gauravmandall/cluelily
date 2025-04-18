@@ -36,6 +36,8 @@ export interface ElectronAPI {
   onSolutionSuccess: (callback: (data: any) => void) => () => void
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onProblemExtracted: (callback: (data: any) => void) => () => void
+  onResetView: (callback: () => void) => () => void
+  triggerReset: () => Promise<{ success: boolean; error?: string }>
 }
 
 declare global {

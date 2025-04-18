@@ -1,4 +1,4 @@
-import { BrowserWindow, globalShortcut } from 'electron'
+import { BrowserWindow, globalShortcut, app } from 'electron'
 import { ProcessingManager } from './processing-manager'
 import { configManager } from './config-manager'
 export interface IKeyboardShortcutHelper {
@@ -118,6 +118,22 @@ export class KeyboardShortcutHelper {
       const mainWindow = this.deps.getMainWindow()
       if (mainWindow) {
         mainWindow.webContents.setZoomLevel(1)
+      }
+    })
+    globalShortcut.register('CommandOrControl+Q', () => {
+      console.log('quit')
+      app.quit()
+    })
+    globalShortcut.register('CommandOrControl+R', () => {
+      console.log('Cancel ongoing request')
+      this.deps.processingManager?.cancelOngoingRequest()
+
+      this.deps.clearQueues()
+      this.deps.setView('queue')
+
+      const mainWindow = this.deps.getMainWindow()
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('reset-view')
       }
     })
   }
