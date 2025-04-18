@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ScreenshotsView from './screenshots-view'
-
+import { useQueryClient } from '@tanstack/react-query'
+import Solutions from './solutions'
 interface MainAppProps {
   currentLanguage: string
   setLanguage: (language: string) => void
@@ -10,6 +11,31 @@ interface MainAppProps {
 const MainApp: React.FC<MainAppProps> = ({ currentLanguage, setLanguage }) => {
   const [view, setView] = useState<'queue' | 'solutions' | 'debug'>('queue')
   const containerRef = useRef<HTMLDivElement>(null)
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    const cleanupFunctions = [
+      window.electronAPI.onSolutionStart(() => {
+        setView('solutions')
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      window.electronAPI.onProblemExtracted((data: any) => {
+        console.log('problem extracted', data)
+        if (view === 'queue') {
+          queryClient.invalidateQueries({
+            queryKey: ['problem_statement']
+          })
+          queryClient.setQueryData(['problem_statement'], data)
+        }
+      })
+    ]
+
+    return () => {
+      cleanupFunctions.forEach((cleanup) => {
+        cleanup()
+      })
+    }
+  }, [view])
 
   return (
     <div ref={containerRef} className="min-h-0">
@@ -20,7 +46,7 @@ const MainApp: React.FC<MainAppProps> = ({ currentLanguage, setLanguage }) => {
           setLanguage={setLanguage}
         />
       ) : view === 'solutions' ? (
-        <>Screnshots solutions view</>
+        <Solutions setView={setView} currentLanguage={currentLanguage} setLanguage={setLanguage} />
       ) : null}
     </div>
   )

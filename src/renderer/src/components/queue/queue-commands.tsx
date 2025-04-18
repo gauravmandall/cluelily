@@ -82,8 +82,17 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
           {screenshotCount! > 0 && (
             <div
               className={`flex flex-col cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors`}
-              onClick={() => {
-                //TODO: Process screenshot
+              onClick={async () => {
+                try {
+                  const result = await window.electronAPI.triggerProcessScreenshots()
+                  if (!result.success) {
+                    console.log('Failed to process screenshot:', result.error)
+                    showToast('Error', 'Failed to process screenshot', 'error')
+                  }
+                } catch (error) {
+                  console.error('Error processing screenshot:', error)
+                  showToast('Error', 'Failed to process screenshot', 'error')
+                }
               }}
             >
               <div className="flex items-center justify-between">
@@ -200,9 +209,18 @@ export const QueueCommands: React.FC<QueueCommandsProps> = ({
                         className={`cursor-pointer rounded px-2 py-1.5 hover:bg-white/10 transition-colors ${
                           screenshotCount! > 0 ? '' : 'opacity-50 cursor-not-allowed'
                         }`}
-                        onClick={() => {
+                        onClick={async () => {
                           if (screenshotCount === 0) return
-                          //TODO: Process screenshot
+                          try {
+                            const result = await window.electronAPI.triggerProcessScreenshots()
+                            if (!result.success) {
+                              console.log('Failed to process screenshot:', result.error)
+                              showToast('Error', 'Failed to process screenshot', 'error')
+                            }
+                          } catch (error) {
+                            console.error('Error processing screenshot:', error)
+                            showToast('Error', 'Failed to process screenshot', 'error')
+                          }
                         }}
                       >
                         <div className="flex items-center justify-between">
