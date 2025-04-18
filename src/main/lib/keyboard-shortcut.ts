@@ -1,5 +1,6 @@
 import { BrowserWindow, globalShortcut } from 'electron'
 import { ProcessingManager } from './processing-manager'
+import { configManager } from './config-manager'
 export interface IKeyboardShortcutHelper {
   moveWindowLeft: () => void
   moveWindowRight: () => void
@@ -20,6 +21,24 @@ export class KeyboardShortcutHelper {
 
   constructor(deps: IKeyboardShortcutHelper) {
     this.deps = deps
+  }
+
+  private adjustOpacity(delta: number): void {
+    const mainWindow = this.deps.getMainWindow()
+    if (!mainWindow) return
+
+    const currentOpacity = mainWindow.getOpacity()
+    const newOpacity = Math.max(0.1, Math.min(1, currentOpacity + delta))
+    console.log('adjusting opacity', currentOpacity, newOpacity)
+    mainWindow.setOpacity(newOpacity)
+
+    try {
+      const config = configManager.loadConfig()
+      config.opacity = newOpacity
+      configManager.saveConfig(config)
+    } catch (error) {
+      console.error('Failed to save config:', error)
+    }
   }
 
   public registerGlobalShortcuts(): void {
@@ -69,6 +88,14 @@ export class KeyboardShortcutHelper {
     })
     globalShortcut.register('CommandOrControl+Enter', async () => {
       await this.deps.processingManager?.processScreenshots()
+    })
+    globalShortcut.register('CommandOrControl+[', () => {
+      console.log('decreaseOpacity')
+      this.adjustOpacity(-0.1)
+    })
+    globalShortcut.register('CommandOrControl+]', () => {
+      console.log('increaseOpacity')
+      this.adjustOpacity(0.1)
     })
   }
 }
