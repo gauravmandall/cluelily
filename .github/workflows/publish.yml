@@ -1,0 +1,47 @@
+name: Build and Publish cluelily
+
+on:
+  push:
+    tags:
+      - v*
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v3
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10.5.2
+
+      - name: Build cluelily
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: pnpm run build
+
+      - name: Publish to GitHub Releases
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          if [ "${{matrix.os}}" == "windows-latest" ]; then
+            pnpm run build:win -- --publish always
+          else
+            pnpm run build:mac -- --publish always
+          fi
+        shell: bash
