@@ -7,6 +7,7 @@ import { initializeIpcHandler } from './lib/ipc-handler'
 import { KeyboardShortcutHelper } from './lib/keyboard-shortcut'
 import { ScreenshotManager } from './lib/screenshot-manager'
 import { ProcessingManager } from './lib/processing-manager'
+import { configManager } from './lib/config-manager'
 export const state = {
   mainWindow: null as BrowserWindow | null,
   isWindowVisible: false,
@@ -150,7 +151,20 @@ async function createWindow(): Promise<void> {
   state.currentY = bounds.y
   state.isWindowVisible = true
 
+  const savedOpacity = configManager.getOpacity()
+  console.log('savedOpacity', savedOpacity)
+
   state.mainWindow.showInactive()
+
+  if (savedOpacity <= 0.1) {
+    console.log('Initial opacity too low, setting to 0 and hiding window')
+    state.mainWindow.setOpacity(0)
+    state.isWindowVisible = false
+  } else {
+    console.log('Setting opacity to', savedOpacity)
+    state.mainWindow.setOpacity(savedOpacity)
+    state.isWindowVisible = true
+  }
 }
 
 function getMainWindow(): BrowserWindow | null {

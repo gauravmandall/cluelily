@@ -277,6 +277,25 @@ export class ConfigManager extends EventEmitter {
       return { valid: false, error: 'Invalid API key' }
     }
   }
+
+  public getOpacity(): number {
+    const config = this.loadConfig()
+    return config.opacity !== undefined ? config.opacity : 1.0
+  }
+
+  public setOpacity(opacity: number): void {
+    const validOpacity = Math.min(1.0, Math.max(0.1, opacity))
+    this.updateConfig({ opacity: validOpacity })
+  }
+
+  public getLanguage(): string {
+    const config = this.loadConfig()
+    return config.language !== undefined ? config.language : 'python'
+  }
+
+  public setLanguage(language: string): void {
+    this.updateConfig({ language })
+  }
 }
 
 export const configManager = new ConfigManager()
