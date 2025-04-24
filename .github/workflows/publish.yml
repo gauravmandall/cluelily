@@ -32,7 +32,7 @@ jobs:
         with:
           version: 10.5.2
 
-      # For macOS - Create a signing config file to optimize the signing process
+      # For macOS - Create entitlements file only
       - name: Create signing configuration
         if: matrix.os == 'macos-latest'
         run: |
@@ -58,54 +58,7 @@ jobs:
           </plist>
           ENTITLEMENTS
 
-          # Create electron-builder.extra.json to optimize signing process
-          cat > electron-builder.extra.json << 'EXTRA_CONFIG'
-          {
-            "mac": {
-              "hardenedRuntime": true,
-              "gatekeeperAssess": false,
-              "entitlements": "build/entitlements.mac.plist",
-              "entitlementsInherit": "build/entitlements.mac.plist",
-              "signingOptions": {
-                "hardened-runtime": true,
-                "signature-flags": "library"
-              }
-            }
-          }
-          EXTRA_CONFIG
-
-          # Create notarize script
-          cat > notarize.js << 'NOTARIZE'
-          const { notarize } = require('@electron/notarize');
-
-          exports.default = async function notarizing(context) {
-            const { electronPlatformName, appOutDir } = context;
-            if (electronPlatformName !== 'darwin') {
-              return;
-            }
-
-            console.log('Notarizing app...');
-
-            const appName = context.packager.appInfo.productFilename;
-            const appBundleId = context.packager.appInfo.id;
-
-            try {
-              await notarize({
-                appBundleId,
-                appPath: `${appOutDir}/${appName}.app`,
-                appleId: process.env.APPLE_ID,
-                appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-                teamId: process.env.APPLE_TEAM_ID,
-              });
-            } catch (error) {
-              console.error('Error notarizing:', error);
-              throw error;
-            }
-          };
-          NOTARIZE
-
-          # Install notarization module
-          npm install --save-dev @electron/notarize
+          # Remove notarize.js creation and @electron/notarize install
         shell: bash
 
       - name: Install dependencies
@@ -128,14 +81,15 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
 
-      # macOS-specific publish step
+      # macOS-specific publish step (Build and Sign only)
       - name: Publish to GitHub Releases (macOS)
         if: matrix.os == 'macos-latest'
         uses: nick-fields/retry@v2
         with:
           timeout_minutes: 45
           max_attempts: 3
-          command: pnpm run build:mac -- --publish always --config.extraMetadata.build="$(cat electron-builder.extra.json)"
+          # Removed --config.extraMetadata.build as signingOptions are not needed without afterSign
+          command: pnpm run build:mac -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -144,5 +98,26 @@ jobs:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: true
-          CSC_TIMEOUT: 1200000
+          CSC_TIMEOUT: 1200000 # 20 minutes timeout for signing
           DEBUG: electron-builder
+
+      # New Step: Notarize macOS App
+      - name: Notarize macOS App
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Install notarization tool
+          npm install --save-dev @electron/notarize
+
+          # Run notarization script
+          node -e 'require("@electron/notarize").notarize({
+            appBundleId: "com.gauravmandall.cluelily",
+            appPath: `dist/mac-arm64/cluelily.app`,
+            appleId: process.env.APPLE_ID,
+            appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+            teamId: process.env.APPLE_TEAM_ID
+          }).then(() => console.log("Notarization successful.")).catch(err => { console.error("Notarization failed:", err); process.exit(1); });'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        shell: bash

@@ -35,17 +35,9 @@ mac:
   target:
     - dmg
     - zip
-afterSign: notarize.js # We'll create this file
 dmg:
   artifactName: ${name}-${version}.${ext}
   sign: true
-  contents:
-    - x: 130
-      y: 220
-    - x: 410
-      y: 220
-      type: link
-      path: /Applications
 mas:
   entitlements: build/entitlements.mas.plist
   entitlementsInherit: build/entitlements.mas.inherit.plist
