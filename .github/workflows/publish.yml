@@ -81,7 +81,8 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: true # Use auto-discovery
           CSC_TIMEOUT: 1800000 # Keep increased timeout (30 minutes)
-          DEBUG: electron-builder # Optional: for detailed logs
+          # Add more specific debug logs for signing
+          DEBUG: 'electron-builder*,electron-osx-sign*'
 
       # Separate Notarization Step for macOS
       - name: Notarize macOS App

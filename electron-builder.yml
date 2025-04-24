@@ -25,7 +25,7 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-  notarize: true
+  notarize: false
   hardenedRuntime: true
   gatekeeperAssess: false
   identity: 'Developer ID Application' # This is better than null
