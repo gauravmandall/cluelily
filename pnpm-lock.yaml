@@ -69,6 +69,9 @@ importers:
       '@electron-toolkit/tsconfig':
         specifier: ^1.0.1
         version: 1.0.1(@types/node@22.14.1)
+      '@electron/notarize':
+        specifier: ^2.3.0
+        version: 2.5.0
       '@types/node':
         specifier: ^22.14.1
         version: 22.14.1

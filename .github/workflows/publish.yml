@@ -57,11 +57,11 @@ jobs:
           </dict>
           </plist>
           ENTITLEMENTS
-
-          # Remove notarize.js creation and @electron/notarize install
+          # Removed extra config and notarize script creation
         shell: bash
 
       - name: Install dependencies
+        # This now includes @electron/notarize
         run: pnpm install --no-frozen-lockfile
 
       - name: Build cluelily
@@ -88,7 +88,7 @@ jobs:
         with:
           timeout_minutes: 45
           max_attempts: 3
-          # Removed --config.extraMetadata.build as signingOptions are not needed without afterSign
+          # Use the standard build command without extra config
           command: pnpm run build:mac -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -98,16 +98,15 @@ jobs:
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: true
-          CSC_TIMEOUT: 1200000 # 20 minutes timeout for signing
+          # Increased timeout further to 30 minutes
+          CSC_TIMEOUT: 1800000
           DEBUG: electron-builder
 
       # New Step: Notarize macOS App
       - name: Notarize macOS App
         if: matrix.os == 'macos-latest'
         run: |
-          # Install notarization tool
-          npm install --save-dev @electron/notarize
-
+          # No need to install notarize tool here, it's in devDependencies
           # Run notarization script
           node -e 'require("@electron/notarize").notarize({
             appBundleId: "com.gauravmandall.cluelily",
