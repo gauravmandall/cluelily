@@ -20,6 +20,7 @@ nsis:
   createDesktopShortcut: always
 mac:
   entitlementsInherit: build/entitlements.mac.plist
+  entitlements: build/entitlements.mac.plist
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
@@ -28,13 +29,13 @@ mac:
   notarize: true
   hardenedRuntime: true
   gatekeeperAssess: false
-  identity: null # Set automatically from your keychain
+  identity: 'Developer ID Application' # This is better than null
   category: public.app-category.productivity
   darkModeSupport: true
   target:
     - dmg
     - zip
-    - pkg
+afterSign: notarize.js # We'll create this file
 dmg:
   artifactName: ${name}-${version}.${ext}
   sign: true
