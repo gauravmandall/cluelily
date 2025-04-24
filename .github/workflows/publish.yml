@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    # Increase the overall job timeout to 60 minutes
+    # Keep the overall job timeout
     timeout-minutes: 60
     runs-on: ${{ matrix.os }}
 
@@ -25,52 +25,34 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: 18
+          node-version: 18 # Or your preferred Node version
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 10.5.2
+          version: 10.5.2 # Or your preferred pnpm version
 
-      # For macOS - Create entitlements file only
-      - name: Create signing configuration
-        if: matrix.os == 'macos-latest'
-        run: |
-          mkdir -p build
-
-          # Create entitlements file
-          cat > build/entitlements.mac.plist << 'ENTITLEMENTS'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-            <key>com.apple.security.cs.allow-jit</key>
-            <true/>
-            <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-            <true/>
-            <key>com.apple.security.cs.allow-dyld-environment-variables</key>
-            <true/>
-            <key>com.apple.security.automation.apple-events</key>
-            <true/>
-            <key>com.apple.security.cs.disable-library-validation</key>
-            <true/>
-          </dict>
-          </plist>
-          ENTITLEMENTS
-          # Removed extra config and notarize script creation
-        shell: bash
+      # Ensure entitlements file exists if needed by your electron-builder.yml
+      # You might need to create this manually or have it committed in your repo
+      # Example: Create dummy if not present (adjust path as needed)
+      # - name: Ensure entitlements file exists (macOS)
+      #   if: matrix.os == 'macos-latest'
+      #   run: |
+      #     mkdir -p build
+      #     touch build/entitlements.mac.plist # Ensure the file exists, content should be in your committed file
 
       - name: Install dependencies
-        # This now includes @electron/notarize
+        # This installs @electron/notarize from package.json
         run: pnpm install --no-frozen-lockfile
 
-      - name: Build cluelily
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm run build
+      # Build step - no publishing here yet
+      # - name: Build cluelily (Optional, if build script doesn't publish)
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #   run: pnpm run build
 
       # Windows-specific publish step
-      - name: Publish to GitHub Releases (Windows)
+      - name: Build and Publish (Windows)
         if: matrix.os == 'windows-latest'
         uses: nick-fields/retry@v2
         with:
@@ -79,16 +61,16 @@ jobs:
           command: pnpm run build:win -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          DEBUG: electron-builder
+          DEBUG: electron-builder # Optional: for detailed logs
 
-      # macOS-specific publish step (Build and Sign only)
-      - name: Publish to GitHub Releases (macOS)
+      # macOS-specific publish step (Build and Sign)
+      - name: Build and Publish (macOS)
         if: matrix.os == 'macos-latest'
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 45
+          timeout_minutes: 45 # Keep extended timeout for signing
           max_attempts: 3
-          # Use the standard build command without extra config
+          # Assumes 'pnpm run build:mac' uses your electron-builder.yml
           command: pnpm run build:mac -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -97,26 +79,56 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          CSC_IDENTITY_AUTO_DISCOVERY: true
-          # Increased timeout further to 30 minutes
-          CSC_TIMEOUT: 1800000
-          DEBUG: electron-builder
+          CSC_IDENTITY_AUTO_DISCOVERY: true # Use auto-discovery
+          CSC_TIMEOUT: 1800000 # Keep increased timeout (30 minutes)
+          DEBUG: electron-builder # Optional: for detailed logs
 
-      # New Step: Notarize macOS App
+      # Separate Notarization Step for macOS
       - name: Notarize macOS App
         if: matrix.os == 'macos-latest'
-        run: |
-          # No need to install notarize tool here, it's in devDependencies
-          # Run notarization script
-          node -e 'require("@electron/notarize").notarize({
-            appBundleId: "com.gauravmandall.cluelily",
-            appPath: `dist/mac-arm64/cluelily.app`,
-            appleId: process.env.APPLE_ID,
-            appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-            teamId: process.env.APPLE_TEAM_ID
-          }).then(() => console.log("Notarization successful.")).catch(err => { console.error("Notarization failed:", err); process.exit(1); });'
+        # Add retry here as well, notarization can sometimes fail temporarily
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 30 # Generous timeout for notarization
+          max_attempts: 3
+          # Use Node to run the notarization script
+          command: |
+            node -e '
+            const { notarize } = require("@electron/notarize");
+            async function notarizeApp() {
+              console.log("Starting notarization...");
+              // Ensure the path matches your build output
+              const appPath = "dist/mac-arm64/cluelily.app";
+              // Ensure the bundle ID matches your config
+              const appBundleId = "com.gauravmandall.cluelily";
+
+              if (!process.env.APPLE_ID) throw new Error("APPLE_ID not set");
+              if (!process.env.APPLE_APP_SPECIFIC_PASSWORD) throw new Error("APPLE_APP_SPECIFIC_PASSWORD not set");
+              if (!process.env.APPLE_TEAM_ID) throw new Error("APPLE_TEAM_ID not set");
+
+              try {
+                await notarize({
+                  appBundleId: appBundleId,
+                  appPath: appPath,
+                  appleId: process.env.APPLE_ID,
+                  appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+                  teamId: process.env.APPLE_TEAM_ID
+                });
+                console.log(`Successfully notarized ${appPath}`);
+              } catch (error) {
+                console.error("Notarization failed:", error);
+                // Check if the error is due to the app already being notarized
+                if (error.message && error.message.includes("Package already notarized")) {
+                   console.log("Warning: App seems to be already notarized. Continuing...");
+                } else {
+                  process.exit(1); // Exit with error for other failures
+                }
+              }
+            }
+            notarizeApp();
+            '
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }} # Ensure this uses the correct secret name
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        shell: bash
+        # shell: bash # Not needed when using node -e
