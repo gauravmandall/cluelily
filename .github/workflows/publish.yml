@@ -97,27 +97,38 @@ jobs:
             node -e '
             const { notarize } = require("@electron/notarize");
             async function notarizeApp() {
-              console.log("Starting notarization...");
-              // Ensure the path matches your build output
+              console.log("--- Starting Notarization Script ---");
+
               const appPath = "dist/mac-arm64/cluelily.app";
-              // Ensure the bundle ID matches your config
               const appBundleId = "com.gauravmandall.cluelily";
+              const appleId = process.env.APPLE_ID;
+              const appleIdPassword = process.env.APPLE_APP_SPECIFIC_PASSWORD;
+              const teamId = process.env.APPLE_TEAM_ID;
 
-              if (!process.env.APPLE_ID) throw new Error("APPLE_ID not set");
-              if (!process.env.APPLE_APP_SPECIFIC_PASSWORD) throw new Error("APPLE_APP_SPECIFIC_PASSWORD not set");
-              if (!process.env.APPLE_TEAM_ID) throw new Error("APPLE_TEAM_ID not set");
+              console.log(`App Path: ${appPath}`);
+              console.log(`App Bundle ID: ${appBundleId}`);
+              console.log(`Apple ID: ${appleId ? "******" : "Not Set"}`);
+              console.log(`Team ID: ${teamId ? teamId : "Not Set"}`);
 
+              if (!appleId) throw new Error("APPLE_ID not set");
+              if (!appleIdPassword) throw new Error("APPLE_APP_SPECIFIC_PASSWORD not set");
+              if (!teamId) throw new Error("APPLE_TEAM_ID not set");
+
+              const notarizeOptions = {
+                appBundleId: appBundleId,
+                appPath: appPath,
+                appleId: appleId,
+                appleIdPassword: appleIdPassword,
+                teamId: teamId
+              };
+
+              console.log("Attempting to call notarize function...");
               try {
-                await notarize({
-                  appBundleId: appBundleId,
-                  appPath: appPath,
-                  appleId: process.env.APPLE_ID,
-                  appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-                  teamId: process.env.APPLE_TEAM_ID
-                });
-                console.log(`Successfully notarized ${appPath}`);
+                await notarize(notarizeOptions);
+                console.log(`--- Notarization Successful for ${appPath} ---`);
               } catch (error) {
-                console.error("Notarization failed:", error);
+                console.error("--- Notarization Failed ---");
+                console.error(error);
                 // Check if the error is due to the app already being notarized
                 if (error.message && error.message.includes("Package already notarized")) {
                    console.log("Warning: App seems to be already notarized. Continuing...");
@@ -126,7 +137,11 @@ jobs:
                 }
               }
             }
-            notarizeApp();
+            notarizeApp().catch(err => {
+              console.error("--- Error in notarizeApp async function ---");
+              console.error(err);
+              process.exit(1);
+            });
             '
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
