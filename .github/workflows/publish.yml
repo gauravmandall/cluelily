@@ -90,14 +90,26 @@ jobs:
           npm install --save-dev @electron/notarize
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
 
       - name: Build cluelily
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm run build
 
+      # Add retry mechanism for macOS builds to handle potential code signing failures
       - name: Publish to GitHub Releases
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: |
+            if [ "${{matrix.os}}" == "windows-latest" ]; then
+              pnpm run build:win -- --publish always
+            else
+              # For macOS, also validate the signing worked
+              pnpm run build:mac -- --publish always
+            fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Add Apple-specific credentials for macOS builds
@@ -109,11 +121,3 @@ jobs:
           # Add identity for more explicit control
           CSC_IDENTITY_AUTO_DISCOVERY: true
           DEBUG: electron-builder
-        run: |
-          if [ "${{matrix.os}}" == "windows-latest" ]; then
-            pnpm run build:win -- --publish always
-          else
-            # For macOS, also validate the signing worked
-            pnpm run build:mac -- --publish always
-          fi
-        shell: bash
