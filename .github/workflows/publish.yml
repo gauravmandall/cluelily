@@ -10,6 +10,8 @@ permissions:
 
 jobs:
   release:
+    # Increase the overall job timeout to 60 minutes
+    timeout-minutes: 60
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -30,8 +32,8 @@ jobs:
         with:
           version: 10.5.2
 
-      # Create required build files for macOS
-      - name: Create macOS build files
+      # For macOS - Create a signing config file to optimize the signing process
+      - name: Create signing configuration
         if: matrix.os == 'macos-latest'
         run: |
           mkdir -p build
@@ -55,6 +57,22 @@ jobs:
           </dict>
           </plist>
           ENTITLEMENTS
+
+          # Create electron-builder.extra.json to optimize signing process
+          cat > electron-builder.extra.json << 'EXTRA_CONFIG'
+          {
+            "mac": {
+              "hardenedRuntime": true,
+              "gatekeeperAssess": false,
+              "entitlements": "build/entitlements.mac.plist",
+              "entitlementsInherit": "build/entitlements.mac.plist",
+              "signingOptions": {
+                "hardened-runtime": true,
+                "signature-flags": "library"
+              }
+            }
+          }
+          EXTRA_CONFIG
 
           # Create notarize script
           cat > notarize.js << 'NOTARIZE'
@@ -88,6 +106,7 @@ jobs:
 
           # Install notarization module
           npm install --save-dev @electron/notarize
+        shell: bash
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -97,27 +116,33 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: pnpm run build
 
-      # Add retry mechanism for macOS builds to handle potential code signing failures
-      - name: Publish to GitHub Releases
+      # Windows-specific publish step
+      - name: Publish to GitHub Releases (Windows)
+        if: matrix.os == 'windows-latest'
         uses: nick-fields/retry@v2
         with:
-          timeout_minutes: 30
+          timeout_minutes: 45
           max_attempts: 3
-          command: |
-            if [ "${{matrix.os}}" == "windows-latest" ]; then
-              pnpm run build:win -- --publish always
-            else
-              # For macOS, also validate the signing worked
-              pnpm run build:mac -- --publish always
-            fi
+          command: pnpm run build:win -- --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Add Apple-specific credentials for macOS builds
+          DEBUG: electron-builder
+
+      # macOS-specific publish step
+      - name: Publish to GitHub Releases (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: nick-fields/retry@v2
+        with:
+          timeout_minutes: 45
+          max_attempts: 3
+          command: pnpm run build:mac -- --publish always --config.extraMetadata.build="$(cat electron-builder.extra.json)"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          # Add identity for more explicit control
           CSC_IDENTITY_AUTO_DISCOVERY: true
+          CSC_TIMEOUT: 1200000
           DEBUG: electron-builder
