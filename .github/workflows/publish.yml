@@ -35,30 +35,29 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           mkdir -p build
-          # Create basic entitlements file if it doesn't exist
-          if [ ! -f build/entitlements.mac.plist ]; then
-            cat > build/entitlements.mac.plist << EOF
-            <?xml version="1.0" encoding="UTF-8"?>
-            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-            <plist version="1.0">
-            <dict>
-              <key>com.apple.security.cs.allow-jit</key>
-              <true/>
-              <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-              <true/>
-              <key>com.apple.security.cs.allow-dyld-environment-variables</key>
-              <true/>
-              <key>com.apple.security.automation.apple-events</key>
-              <true/>
-              <key>com.apple.security.cs.disable-library-validation</key>
-              <true/>
-            </dict>
-            </plist>
-            EOF
-          fi
 
-          # Create notarize.js script for electron-builder
-          cat > notarize.js << EOF
+          # Create entitlements file
+          cat > build/entitlements.mac.plist << 'ENTITLEMENTS'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>com.apple.security.cs.allow-jit</key>
+            <true/>
+            <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+            <true/>
+            <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+            <true/>
+            <key>com.apple.security.automation.apple-events</key>
+            <true/>
+            <key>com.apple.security.cs.disable-library-validation</key>
+            <true/>
+          </dict>
+          </plist>
+          ENTITLEMENTS
+
+          # Create notarize script
+          cat > notarize.js << 'NOTARIZE'
           const { notarize } = require('@electron/notarize');
 
           exports.default = async function notarizing(context) {
@@ -75,7 +74,7 @@ jobs:
             try {
               await notarize({
                 appBundleId,
-                appPath: \`\${appOutDir}/\${appName}.app\`,
+                appPath: `${appOutDir}/${appName}.app`,
                 appleId: process.env.APPLE_ID,
                 appleIdPassword: process.env.APPLE_ID_PASSWORD,
                 teamId: process.env.APPLE_TEAM_ID,
@@ -85,7 +84,7 @@ jobs:
               throw error;
             }
           };
-          EOF
+          NOTARIZE
 
           # Install notarization module
           npm install --save-dev @electron/notarize
