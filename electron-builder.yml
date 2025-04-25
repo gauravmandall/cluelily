@@ -19,7 +19,6 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
-  afterSign: notarize.js
   entitlementsInherit: build/entitlements.mac.plist
   entitlements: build/entitlements.mac.plist
   hardenedRuntime: true
