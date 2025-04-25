@@ -32,24 +32,9 @@ jobs:
         with:
           version: 10.5.2 # Or your preferred pnpm version
 
-      # Ensure entitlements file exists if needed by your electron-builder.yml
-      # You might need to create this manually or have it committed in your repo
-      # Example: Create dummy if not present (adjust path as needed)
-      # - name: Ensure entitlements file exists (macOS)
-      #   if: matrix.os == 'macos-latest'
-      #   run: |
-      #     mkdir -p build
-      #     touch build/entitlements.mac.plist # Ensure the file exists, content should be in your committed file
-
       - name: Install dependencies
         # This installs @electron/notarize from package.json
         run: pnpm install --no-frozen-lockfile
-
-      # Build step - no publishing here yet
-      # - name: Build cluelily (Optional, if build script doesn't publish)
-      #   env:
-      #     GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   run: pnpm run build
 
       # Windows-specific publish step
       - name: Build and Publish (Windows)

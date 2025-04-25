@@ -1,16 +1,20 @@
-import fs from 'fs'
-import { notarize } from '@electron/notarize'
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+const fs = require('fs')
+// eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
+const { notarize } = require('@electron/notarize')
 
-// Get configuration from environment variables
-const appBundleId = process.env.APP_BUNDLE_ID
-const appPath = process.env.APP_PATH
-const appleId = process.env.APPLE_ID
-const appleIdPassword = process.env.APPLE_APP_SPECIFIC_PASSWORD
-const teamId = process.env.APPLE_TEAM_ID
-
+// Define the main async function
 async function notarizeApp() {
   console.log('--- Starting notarize.js Script ---')
 
+  // Get configuration from environment variables
+  const appBundleId = process.env.APP_BUNDLE_ID
+  const appPath = process.env.APP_PATH
+  const appleId = process.env.APPLE_ID
+  const appleIdPassword = process.env.APPLE_APP_SPECIFIC_PASSWORD
+  const teamId = process.env.APPLE_TEAM_ID
+
+  // Only run on macOS
   if (process.platform !== 'darwin') {
     console.log('Not on macOS, skipping notarization.')
     return
@@ -51,13 +55,20 @@ async function notarizeApp() {
     if (error.message && error.message.includes('Package already notarized')) {
       console.log('Warning: App seems to be already notarized. Continuing...')
     } else {
-      throw error // Re-throw the error to fail the script
+      // Re-throw the error to ensure the script exits with a non-zero code on failure
+      throw error
     }
   }
 }
 
-notarizeApp().catch((err) => {
-  console.error('--- Error executing notarizeApp ---')
-  console.error(err)
-  process.exit(1)
-})
+// Export the function for potential use as a hook (though we run it directly)
+exports.default = notarizeApp
+
+// Execute the function if the script is run directly (e.g., by `node notarize.js`)
+if (require.main === module) {
+  notarizeApp().catch((err) => {
+    console.error('--- Error executing notarizeApp script directly ---')
+    console.error(err)
+    process.exit(1)
+  })
+}

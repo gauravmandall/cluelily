@@ -2,7 +2,6 @@
   "name": "cluelily",
   "version": "1.0.6",
   "description": "An Electron application with React and TypeScript",
-  "type": "module",
   "main": "./out/main/index.js",
   "author": "example.com",
   "homepage": "https://electron-vite.org",
