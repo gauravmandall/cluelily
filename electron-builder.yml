@@ -18,8 +18,8 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
-afterSign: notarize.js
 mac:
+  afterSign: notarize.js
   entitlementsInherit: build/entitlements.mac.plist
   entitlements: build/entitlements.mac.plist
   hardenedRuntime: true
