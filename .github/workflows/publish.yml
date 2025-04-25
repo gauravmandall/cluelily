@@ -92,58 +92,12 @@ jobs:
         with:
           timeout_minutes: 30 # Generous timeout for notarization
           max_attempts: 3
-          # Use Node to run the notarization script
-          command: |
-            node -e '
-            const { notarize } = require("@electron/notarize");
-            async function notarizeApp() {
-              console.log("--- Starting Notarization Script ---");
-
-              const appPath = "dist/mac-arm64/cluelily.app";
-              const appBundleId = "com.gauravmandall.cluelily";
-              const appleId = process.env.APPLE_ID;
-              const appleIdPassword = process.env.APPLE_APP_SPECIFIC_PASSWORD;
-              const teamId = process.env.APPLE_TEAM_ID;
-
-              console.log(`App Path: ${appPath}`);
-              console.log(`App Bundle ID: ${appBundleId}`);
-              console.log(`Apple ID: ${appleId ? "******" : "Not Set"}`);
-              console.log(`Team ID: ${teamId ? teamId : "Not Set"}`);
-
-              if (!appleId) throw new Error("APPLE_ID not set");
-              if (!appleIdPassword) throw new Error("APPLE_APP_SPECIFIC_PASSWORD not set");
-              if (!teamId) throw new Error("APPLE_TEAM_ID not set");
-
-              const notarizeOptions = {
-                appBundleId: appBundleId,
-                appPath: appPath,
-                appleId: appleId,
-                appleIdPassword: appleIdPassword,
-                teamId: teamId
-              };
-
-              console.log("Attempting to call notarize function...");
-              try {
-                await notarize(notarizeOptions);
-                console.log(`--- Notarization Successful for ${appPath} ---`);
-              } catch (error) {
-                console.error("--- Notarization Failed ---");
-                console.error(error);
-                // Check if the error is due to the app already being notarized
-                if (error.message && error.message.includes("Package already notarized")) {
-                   console.log("Warning: App seems to be already notarized. Continuing...");
-                } else {
-                  process.exit(1); // Exit with error for other failures
-                }
-              }
-            }
-            notarizeApp().catch(err => {
-              console.error("--- Error in notarizeApp async function ---");
-              console.error(err);
-              process.exit(1);
-            });
-            '
+          # Execute the dedicated notarization script
+          command: node notarize.js
         env:
+          # Pass necessary values to the script via environment variables
+          APP_BUNDLE_ID: com.gauravmandall.cluelily
+          APP_PATH: dist/mac-arm64/cluelily.app
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }} # Ensure this uses the correct secret name
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
