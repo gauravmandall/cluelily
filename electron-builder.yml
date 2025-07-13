@@ -13,22 +13,32 @@ asarUnpack:
   - resources/**
 win:
   executableName: cluelily
+  target:
+    - target: nsis
+      arch: [x64, ia32]
+    - target: portable
+      arch: [x64, ia32]
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${name}-${version}-win-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+portable:
+  artifactName: ${name}-${version}-win-${arch}-portable.${ext}
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   entitlements: build/entitlements.mac.plist
   hardenedRuntime: true
   category: public.app-category.productivity
   darkModeSupport: true
+  artifactName: ${name}-${version}-mac-${arch}.${ext}
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-mac-${arch}.${ext}
   sign: true
 mas:
   entitlements: build/entitlements.mas.plist
@@ -37,13 +47,20 @@ mas:
   hardenedRuntime: false
 linux:
   target:
-    - AppImage
-    - snap
-    - deb
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: snap
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
   maintainer: electronjs.org
   category: Utility
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
+snap:
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
+deb:
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
 npmRebuild: false
 publish:
   provider: github
